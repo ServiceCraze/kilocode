@@ -109,6 +109,10 @@ export class AutocompleteServiceManager {
     this.nextEditProvider = new NextEditInlineCompletionProvider({
       connectionService,
       suggestionManager: this.nextEditSuggestionManager,
+      getModelSelection: () => {
+        const info = getAutocompleteModel(this.settings?.provider, this.settings?.model)
+        return { providerId: info.providerID, modelId: info.modelID }
+      },
       isFileAllowed: async (fsPath) => {
         const ignore = await this.inlineCompletionProvider.ignoreController
         return ignore.validateAccess(fsPath)
@@ -251,37 +255,6 @@ export class AutocompleteServiceManager {
       return false
     }
     return Date.now() < snoozeUntil
-  }
-
-  /**
-   * Get remaining snooze time in seconds
-   */
-  public getSnoozeRemainingSeconds(): number {
-    const snoozeUntil = this.settings?.snoozeUntil
-    if (!snoozeUntil) {
-      return 0
-    }
-    const remaining = Math.max(0, Math.ceil((snoozeUntil - Date.now()) / 1000))
-    return remaining
-  }
-
-  /**
-   * Snooze autocomplete for a specified number of seconds
-   */
-  public async snooze(seconds: number): Promise<void> {
-    if (this.snoozeTimer) {
-      clearTimeout(this.snoozeTimer)
-      this.snoozeTimer = null
-    }
-
-    const snoozeUntil = Date.now() + seconds * 1000
-    await writeSettings({ snoozeUntil })
-
-    this.snoozeTimer = setTimeout(() => {
-      void this.unsnooze()
-    }, seconds * 1000)
-
-    await this.load()
   }
 
   /**

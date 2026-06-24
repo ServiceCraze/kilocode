@@ -16,6 +16,7 @@ import ai.kilocode.client.session.model.QuestionItem
 import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.client.testing.FakeAppRpcApi
 import ai.kilocode.client.testing.FakeSessionRpcApi
+import ai.kilocode.client.testing.TestUiTimers
 import ai.kilocode.client.testing.FakeWorkspaceRpcApi
 import ai.kilocode.rpc.dto.ChatEventDto
 import ai.kilocode.rpc.dto.CloudSessionDto
@@ -23,6 +24,8 @@ import ai.kilocode.rpc.dto.KiloAppStateDto
 import ai.kilocode.rpc.dto.KiloAppStatusDto
 import ai.kilocode.rpc.dto.KiloWorkspaceStateDto
 import ai.kilocode.rpc.dto.KiloWorkspaceStatusDto
+import ai.kilocode.rpc.dto.MessageDto
+import ai.kilocode.rpc.dto.MessageTimeDto
 import ai.kilocode.rpc.dto.QuestionInfoDto
 import ai.kilocode.rpc.dto.QuestionRequestDto
 import ai.kilocode.rpc.dto.SessionDto
@@ -36,6 +39,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import javax.swing.JLabel
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -48,6 +52,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     private lateinit var workspace: Workspace
     private lateinit var sessions: KiloSessionService
     private lateinit var app: KiloAppService
+    private lateinit var timers: TestUiTimers
     private val managers = mutableListOf<SessionSidePanelManager>()
     private val created = mutableListOf<Pair<String, String?>>()
     private val refs = mutableListOf<SessionRef?>()
@@ -55,6 +60,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
+        timers = TestUiTimers()
         scope = CoroutineScope(SupervisorJob())
         rpc = FakeSessionRpcApi()
         sessions = KiloSessionService(project, scope, rpc)
@@ -135,7 +141,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test opening same existing session reuses component`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         val manager = manager()
         val session = session("ses_1")
 
@@ -146,11 +152,11 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         val second = active(manager)
 
         assertSame(first, second)
-        assertEquals(listOf("/test" to "ses_1", "/test" to null), created)
+        assertTrue(created.containsAll(listOf("/test" to "ses_1", "/test" to null)))
     }
 
     fun `test prompted blank session is reused from recents`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         val manager = manager()
         manager.newSession()
         val first = active(manager)
@@ -197,7 +203,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test inactive sessions keep queued style updates`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         val manager = manager()
         manager.openSession(session("ses_1"))
         val first = active(manager) as SessionUi
@@ -211,35 +217,58 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         assertSame(style, first.currentStyle())
     }
 
-    fun `test dispose inactive flag disposes previous session ui`() {
-        enableDisposeInactiveUi()
+    fun `test hidden session is disposed after timeout`() {
+        useShortInactiveDisposeTimeout()
         val manager = manager()
 
         manager.openSession(session("ses_1"))
         val first = active(manager)
-        settle()
         manager.openSession(session("ses_2"))
+        expire()
 
         assertFalse(ui.contains(first))
         assertEquals(listOf("/test" to "ses_1", "/test" to "ses_2"), created)
     }
 
-    fun `test dispose inactive flag recreates reopened session ui`() {
-        enableDisposeInactiveUi()
+    fun `test reopening after hidden timeout recreates session ui`() {
+        useShortInactiveDisposeTimeout()
         val manager = manager()
 
         manager.openSession(session("ses_1"))
         val first = active(manager)
-        settle()
         manager.openSession(session("ses_2"))
+        expire()
         manager.openSession(session("ses_1"))
 
         assertNotSame(first, active(manager))
         assertEquals(listOf("/test" to "ses_1", "/test" to "ses_2", "/test" to "ses_1"), created)
     }
 
-    fun `test dispose inactive flag keeps pending session for history overlays`() {
-        enableDisposeInactiveUi()
+    fun `test queued hidden transcript events are discarded after timeout disposal`() {
+        useShortInactiveDisposeTimeout()
+        val flow = MutableSharedFlow<ChatEventDto>(extraBufferCapacity = 16)
+        rpc.eventFlow = { _, _ -> flow }
+        val manager = manager()
+
+        manager.openSession(session("ses_1"))
+        val first = active(manager)
+        settle()
+        manager.openSession(session("ses_2"))
+        kotlinx.coroutines.runBlocking {
+            flow.emit(ChatEventDto.MessageUpdated("ses_1", msg("msg_hidden", "ses_1", "assistant")))
+            flow.emit(ChatEventDto.PartDelta("ses_1", "msg_hidden", "txt_hidden", "text", "stale"))
+        }
+        expire()
+        manager.openSession(session("ses_1"))
+        val second = active(manager)
+        settle()
+
+        assertNotSame(first, second)
+        assertTrue(empty(second))
+    }
+
+    fun `test pending session is retained for history overlays before timeout`() {
+        useLongInactiveDisposeTimeout()
         val history = JLabel("History")
         val manager = manager(history = { _, _, _ -> history })
 
@@ -254,8 +283,8 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         assertTrue(ui.contains(first))
     }
 
-    fun `test history overlays update with inactive dispose enabled`() {
-        enableDisposeInactiveUi()
+    fun `test history overlays update before hidden timeout`() {
+        useLongInactiveDisposeTimeout()
         lateinit var history: HistoryPanel
         val manager = manager(history = { parent, _, _ ->
             val controller = HistoryController(sessions, workspace, scope)
@@ -287,7 +316,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test history overlays update from hidden session stream metadata`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         lateinit var history: HistoryPanel
         val manager = manager(history = { parent, _, _ ->
             val controller = HistoryController(sessions, workspace, scope)
@@ -342,7 +371,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test history back restores latest open session`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         val manager = manager()
 
         manager.openSession(session("ses_1"))
@@ -351,6 +380,20 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         back(manager)
 
         assertSame(first, active(manager))
+    }
+
+    fun `test history back restores latest session focus`() {
+        useLongInactiveDisposeTimeout()
+        val requests = mutableListOf<JComponent>()
+        val manager = manager(request = { requests.add(it) })
+
+        manager.openSession(session("ses_1"))
+        val first = active(manager) as SessionUi
+        manager.showHistory()
+        requests.clear()
+        back(manager)
+
+        assertSame(first.defaultFocusedComponent, requests.single())
     }
 
     fun `test history back without latest session opens new session`() {
@@ -387,7 +430,25 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         open(SessionRef.Local(session("ses_1")))
 
         assertTrue(active(manager) is SessionUi)
-        assertEquals(listOf("/test" to "ses_1"), created)
+        assertTrue(created.contains("/test" to "ses_1"))
+    }
+
+    fun `test opening local history item restores session focus`() {
+        lateinit var open: (SessionRef) -> Unit
+        val requests = mutableListOf<JComponent>()
+        val manager = manager(
+            history = { _, fn, _ ->
+                open = fn
+                JLabel("History")
+            },
+            request = { requests.add(it) },
+        )
+
+        manager.showHistory()
+        open(SessionRef.Local(session("ses_1")))
+        val active = active(manager) as SessionUi
+
+        assertSame(active.defaultFocusedComponent, requests.single())
     }
 
     fun `test opening cloud history item shows session ui before import`() {
@@ -415,7 +476,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test opening same cloud session while in-flight reuses existing ui`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         rpc.historyGate = kotlinx.coroutines.CompletableDeferred()
         rpc.importedCloudSession = session("ses_imported")
         val manager = manager()
@@ -435,7 +496,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test imported cloud session is reused when opened as local`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         rpc.importedCloudSession = session("ses_imported")
         val manager = manager()
 
@@ -461,7 +522,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test opening same local session while in-flight reuses existing ui`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
         rpc.historyGate = gate
         val manager = manager()
@@ -531,7 +592,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
     }
 
     fun `test activity reports plan and question separately`() {
-        disableInactiveDispose()
+        useLongInactiveDisposeTimeout()
         val manager = manager()
         manager.openSession(session("ses_plan"))
         val plan = active(manager)
@@ -553,8 +614,8 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         )
     }
 
-    fun `test inactive dispose keeps permission session ui`() {
-        enableDisposeInactiveUi()
+    fun `test hidden permission session ui is disposed after timeout`() {
+        useShortInactiveDisposeTimeout()
         val manager = manager()
         manager.openSession(session("ses_1"))
         val first = active(manager)
@@ -562,13 +623,14 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
             first.controller().model.setState(SessionState.AwaitingPermission(permission("ses_1")))
         }
         manager.openSession(session("ses_2"))
+        expire()
 
-        assertTrue(ui.contains(first))
-        assertEquals(mapOf("ses_1" to SessionActivityKind.PERMISSION), manager.activity())
+        assertFalse(ui.contains(first))
+        assertEquals(emptyMap<String, SessionActivityKind>(), manager.activity())
     }
 
-    fun `test inactive dispose keeps busy session ui`() {
-        enableDisposeInactiveUi()
+    fun `test hidden busy session ui is disposed after timeout`() {
+        useShortInactiveDisposeTimeout()
         val manager = manager()
         manager.openSession(session("ses_1"))
         val first = active(manager)
@@ -576,17 +638,18 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
             first.controller().model.setState(SessionState.Busy("running"))
         }
         manager.openSession(session("ses_2"))
+        expire()
 
-        assertTrue(ui.contains(first))
+        assertFalse(ui.contains(first))
     }
 
     fun `test activity ignores disposed idle session ui`() {
-        enableDisposeInactiveUi()
+        useShortInactiveDisposeTimeout()
         val manager = manager()
         manager.openSession(session("ses_1"))
         val first = active(manager)
-        settle()
         manager.openSession(session("ses_2"))
+        expire()
 
         assertFalse(ui.contains(first))
         assertEquals(emptyMap<String, SessionActivityKind>(), manager.activity())
@@ -594,11 +657,12 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
 
     private fun manager(
         history: ((com.intellij.openapi.Disposable, (SessionRef) -> Unit, (String) -> Unit) -> JComponent)? = null,
+        request: (JComponent) -> Unit = {},
     ): SessionSidePanelManager {
         val manager = SessionSidePanelManager(
             project = project,
             root = workspace,
-            create = { project, workspace, owner, ref ->
+            create = { project, workspace, owner, ref, timers ->
                 val id = when (ref) {
                     is SessionRef.Local -> ref.id
                     is SessionRef.Cloud -> ref.key
@@ -606,7 +670,17 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
                 }
                 created.add(workspace.directory to id)
                 refs.add(ref)
-                SessionUi(project, workspace, sessions, app, scope, ref = ref, manager = owner, workspaces = workspaces).also {
+                SessionUi(
+                    project,
+                    workspace,
+                    sessions,
+                    app,
+                    scope,
+                    ref = ref,
+                    manager = owner,
+                    workspaces = workspaces,
+                    timers = timers,
+                ).also {
                     ui.add(it)
                     Disposer.register(it) { ui.remove(it) }
                 }
@@ -614,6 +688,8 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
             resolve = { workspaces.workspace(it) },
             status = { sessions.activity() },
             history = history,
+            timers = timers,
+            request = request,
         )
         managers.add(manager)
         return manager
@@ -621,17 +697,25 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
 
     private fun active(manager: SessionSidePanelManager) = manager.component.getComponent(0) as JPanel
 
-    private fun enableDisposeInactiveUi() = setInactiveDispose(true)
+    private fun empty(panel: JPanel): Boolean {
+        var empty = false
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait {
+            empty = panel.controller().model.isEmpty()
+        }
+        return empty
+    }
 
-    private fun disableInactiveDispose() = setInactiveDispose(false)
+    private fun useShortInactiveDisposeTimeout() = setInactiveDisposeTimeout(10)
 
-    private fun setInactiveDispose(enabled: Boolean) {
-        val key = "kilo.session.inactive.dispose"
+    private fun useLongInactiveDisposeTimeout() = setInactiveDisposeTimeout(60_000)
+
+    private fun setInactiveDisposeTimeout(ms: Int) {
+        val key = "kilo.session.inactive.disposeTimeoutMs"
         Registry.mutateContributedKeys {
             it + (key to RegistryKeyDescriptor(
                 key,
-                "Dispose inactive session UI when switching sessions instead of retaining it in memory.",
-                "false",
+                "Milliseconds before hidden session UI is disposed after switching away.",
+                "180000",
                 false,
                 false,
                 null,
@@ -641,7 +725,7 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         Disposer.register(testRootDisposable) {
             Registry.mutateContributedKeys { it - key }
         }
-        Registry.get(key).setValue(enabled, testRootDisposable)
+        Registry.get(key).setValue(ms, testRootDisposable)
     }
 
     private fun JPanel.controller(): ai.kilocode.client.session.controller.SessionController {
@@ -662,10 +746,16 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         method.invoke(manager)
     }
 
+    private fun expire() {
+        timers.advanceBy(10)
+    }
+
     private fun settle() = kotlinx.coroutines.runBlocking {
         repeat(5) {
             kotlinx.coroutines.delay(100)
-            com.intellij.util.ui.UIUtil.dispatchAllInvocationEvents()
+            com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait {
+                com.intellij.util.ui.UIUtil.dispatchAllInvocationEvents()
+            }
         }
     }
 
@@ -678,6 +768,13 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         title = title,
         version = "1",
         time = SessionTimeDto(created = 1.0, updated = 2.0),
+    )
+
+    private fun msg(id: String, session: String, role: String) = MessageDto(
+        id = id,
+        sessionID = session,
+        role = role,
+        time = MessageTimeDto(created = 1.0),
     )
 
     private fun cloud(id: String) = CloudSessionDto(

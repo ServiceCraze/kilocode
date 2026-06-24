@@ -11,6 +11,19 @@ import { getGitContext } from "./git-context"
 const log = Log.create({ service: "commit-message" })
 
 export const CommitMessageRuntime = {
+  context(repoPath: string, selectedFiles?: string[]) {
+    return getGitContext(repoPath, selectedFiles)
+  },
+  model() {
+    return AppRuntime.runPromise(
+      Provider.Service.use((svc) =>
+        Effect.gen(function* () {
+          const ref = yield* svc.defaultModel()
+          return (yield* svc.getSmallModel(ref.providerID)) ?? (yield* svc.getModel(ref.providerID, ref.modelID))
+        }),
+      ),
+    )
+  },
   generate(input: LLM.StreamInput, signal: AbortSignal) {
     // runPromise is needed until generateCommitMessage() uses Effect
     return AppRuntime.runPromise(
@@ -131,7 +144,7 @@ function clean(text: string): string {
 const TIMEOUT_MS = 30_000
 
 export async function generateCommitMessage(request: CommitMessageRequest): Promise<CommitMessageResponse> {
-  const ctx = await getGitContext(request.path, request.selectedFiles)
+  const ctx = await CommitMessageRuntime.context(request.path, request.selectedFiles)
   if (ctx.files.length === 0) {
     throw new Error("No changes found to generate a commit message for")
   }
@@ -141,10 +154,7 @@ export async function generateCommitMessage(request: CommitMessageRequest): Prom
     files: ctx.files.length,
   })
 
-  const defaultModel = await Provider.defaultModel()
-  const model =
-    (await Provider.getSmallModel(defaultModel.providerID)) ??
-    (await Provider.getModel(defaultModel.providerID, defaultModel.modelID))
+  const model = await CommitMessageRuntime.model()
 
   const agent: Agent.Info = {
     name: "commit-message",

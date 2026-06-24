@@ -26,8 +26,8 @@ import javax.inject.Inject
  * 4. Each entry on `PATH`
  * 5. Common install locations (`~/.bun/bin`, `/opt/homebrew/bin`, `/usr/local/bin`)
  *
- * After Bun finishes, the task verifies the expected binary exists so that
- * Rosetta / architecture mismatches surface with a clear error message.
+ * After Bun finishes, the task verifies the expected binary exists so that Rosetta / architecture
+ * mismatches surface with a clear error message.
  */
 @DisableCachingByDefault(because = "Local developer bootstrap task that shells out to Bun")
 abstract class PrepareLocalCliTask : DefaultTask() {

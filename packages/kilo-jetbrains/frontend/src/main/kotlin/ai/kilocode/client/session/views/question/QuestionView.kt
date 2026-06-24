@@ -6,14 +6,18 @@ import ai.kilocode.client.session.model.QuestionItem
 import ai.kilocode.client.session.model.QuestionOption
 import ai.kilocode.client.session.ui.SessionView
 import ai.kilocode.client.session.ui.editor.SessionEditorTextField
+import ai.kilocode.client.session.views.SessionViewIcons
 import ai.kilocode.client.session.views.base.BaseQuestionView
+import ai.kilocode.client.session.ui.selection.SessionSelection
 import ai.kilocode.client.session.ui.style.SessionEditorStyle
 import ai.kilocode.client.session.ui.style.SessionEditorStyleTarget
 import ai.kilocode.client.ui.HoverIcon
 import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.rpc.dto.QuestionReplyDto
-import com.intellij.icons.AllIcons
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.IconLoader
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
@@ -27,6 +31,7 @@ import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.GridBagLayout
+import java.awt.Rectangle
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
 import java.awt.event.MouseAdapter
@@ -47,6 +52,7 @@ class QuestionView(
     private val reject: (String) -> Unit,
     private val follow: () -> Boolean = { true },
     private val scroll: (Boolean) -> Unit = {},
+    private val selection: SessionSelection? = null,
 ) : BorderLayoutPanel(), SessionEditorStyleTarget, SessionView {
     override val sessionViewKind = SessionView.Kind.Default
 
@@ -60,11 +66,12 @@ class QuestionView(
     private var customOpen = emptyList<Boolean>()
     private var style = SessionEditorStyle.current()
     private val texts = mutableListOf<Pair<JBTextArea, Boolean>>()
+    private val regs = mutableListOf<Disposable>()
     // The custom editor for the currently shown question; null when not shown.
     private var customEditor: SessionEditorTextField? = null
     private var customFocus: FocusAdapter? = null
 
-    private val card = BaseQuestionView()
+    private val card = BaseQuestionView(selection)
 
     private val summary = JBLabel()
     private val nav = JPanel().apply {
@@ -72,14 +79,14 @@ class QuestionView(
         layout = BoxLayout(this, BoxLayout.X_AXIS)
     }
     private val back = HoverIcon().apply {
-        val ico = AllIcons.Actions.Back
+        val ico = SessionViewIcons.chevronLeft
         icon = ico
         disabledIcon = IconLoader.getDisabledIcon(ico)
         toolTipText = KiloBundle.message("session.question.back")
         addActionListener { goBack() }
     }
     private val fwd = HoverIcon().apply {
-        val ico = AllIcons.Actions.Forward
+        val ico = SessionViewIcons.chevronRight
         icon = ico
         disabledIcon = IconLoader.getDisabledIcon(ico)
         toolTipText = KiloBundle.message("session.question.next")
@@ -87,7 +94,7 @@ class QuestionView(
     }
     private val topPanel = JPanel(BorderLayout()).apply {
         isOpaque = false
-        border = JBUI.Borders.emptyBottom(UiStyle.Gap.lg())
+        border = JBUI.Borders.empty()
         alignmentX = Component.LEFT_ALIGNMENT
     }
     private val body = JPanel().apply {
@@ -142,8 +149,9 @@ class QuestionView(
         selections = emptyList()
         customTexts = emptyList()
         customOpen = emptyList()
-        customEditor = null
+        disposeCustomEditor()
         customFocus = null
+        disposeRegs()
         texts.clear()
         body.removeAll()
         card.setActions(emptyList())
@@ -156,7 +164,7 @@ class QuestionView(
         this.style = style
         card.applyStyle(style)
         customEditor?.let { ed ->
-            ed.font = style.transcriptFont
+            ed.font = style.editorFont
             ed.getEditor(false)?.let(style::applyToEditor)
             ed.background = style.editorScheme.defaultBackground
         }
@@ -168,8 +176,9 @@ class QuestionView(
     @RequiresEdt
     private fun syncPage() {
         val q = question ?: return
+        disposeRegs()
         texts.clear()
-        customEditor = null
+        disposeCustomEditor()
         customFocus = null
         body.removeAll()
         if (review(q)) {
@@ -198,6 +207,12 @@ class QuestionView(
         summary.isVisible = total > 1
         nav.isVisible = total > 1
         topPanel.isVisible = total > 1
+        if (total > 1) {
+            topPanel.border = JBUI.Borders.empty(0, 0, UiStyle.Gap.sm(), 0)
+            card.setSpacing(UiStyle.Gap.sm(), UiStyle.Gap.pad())
+            return
+        }
+        card.setSpacing(UiStyle.Gap.xl(), UiStyle.Gap.pad())
     }
 
     @RequiresEdt
@@ -473,7 +488,7 @@ class QuestionView(
      */
     @RequiresEdt
     private fun buildCustomEditor(): SessionEditorTextField {
-        val ed = SessionEditorTextField(project)
+        val ed = SessionEditorTextField(project, selection = selection)
         ed.border = JBUI.Borders.empty()
         ed.setFontInheritedFromLAF(false)
         ed.setPlaceholder(KiloBundle.message("session.question.custom.placeholder"))
@@ -491,7 +506,8 @@ class QuestionView(
             ex.settings.isAdditionalPageAtBottom = false
             ex.scrollPane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
         }
-        ed.font = style.transcriptFont
+        selection?.register(ed)?.let(regs::add)
+        ed.font = style.editorFont
         ed.background = style.editorScheme.defaultBackground
 
         // Pre-fill with saved text. This call also forces lazy document creation so
@@ -517,6 +533,13 @@ class QuestionView(
 
         syncEditorHeight(ed)
         return ed
+    }
+
+    @RequiresEdt
+    private fun disposeCustomEditor() {
+        val ed = customEditor ?: return
+        customEditor = null
+        ed.getEditor(false)?.let { EditorFactory.getInstance().releaseEditor(it) }
     }
 
     @RequiresEdt
@@ -657,6 +680,8 @@ class QuestionView(
                 return Dimension(Int.MAX_VALUE, size.height)
             }
 
+            override fun scrollRectToVisible(aRect: Rectangle) {}
+
             private fun withWidth(fallback: Int): Dimension {
                 val width = space()
                 if (width <= 0) return Dimension(super.getPreferredSize().width, fallback)
@@ -690,8 +715,14 @@ class QuestionView(
             border = JBUI.Borders.empty()
         }
         texts.add(area to bold)
+        selection?.register(area)?.let(regs::add)
         setFont(area, bold)
         return area
+    }
+
+    private fun disposeRegs() {
+        regs.forEach(Disposer::dispose)
+        regs.clear()
     }
 
     private fun single(q: Question): Boolean = q.items.size == 1 && !q.items[0].multiple

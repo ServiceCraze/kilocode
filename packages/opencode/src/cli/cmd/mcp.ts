@@ -12,11 +12,11 @@ import { McpOAuthProvider } from "../../mcp/oauth-provider"
 import { Config } from "@/config/config"
 import { ConfigMCP } from "../../config/mcp"
 import { InstanceRef } from "@/effect/instance-ref"
-import { Installation } from "../../installation"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
 import { modify, applyEdits } from "jsonc-parser"
+import { KilocodeMcpConfig } from "@/kilocode/cli/cmd/mcp" // kilocode_change
 import { Filesystem } from "@/util/filesystem"
 import { Bus } from "../../bus"
 import { Effect } from "effect"
@@ -438,7 +438,7 @@ async function addMcpToConfig(name: string, mcpConfig: ConfigMCP.Info, configPat
   const edits = modify(text, ["mcp", name], mcpConfig, {
     formattingOptions: { tabSize: 2, insertSpaces: true },
   })
-  const result = applyEdits(text, edits)
+  const result = KilocodeMcpConfig.format(configPath, applyEdits(text, edits)) // kilocode_change
 
   await Filesystem.write(configPath, result)
 

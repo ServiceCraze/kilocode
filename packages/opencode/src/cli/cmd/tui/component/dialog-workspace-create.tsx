@@ -36,21 +36,14 @@ export type WorkspaceSelection =
 type WorkspaceSelectValue = WorkspaceSelection | { type: "existing-list" }
 type ExistingWorkspaceSelectValue = { workspace: Workspace }
 
-export function recentConnectedWorkspaces<WorkspaceInfo extends { id: string }>(input: {
-  sessions: readonly { workspaceID?: string; time: { updated: number } }[]
-  get: (workspaceID: string) => WorkspaceInfo | undefined
+export function recentConnectedWorkspaces<WorkspaceInfo extends { id: string; timeUsed: number | string }>(input: {
+  workspaces: readonly WorkspaceInfo[]
   status: (workspaceID: string) => string | undefined
   limit?: number
   omitWorkspaceID?: string
 }) {
-  const workspaces = input.sessions
-    .toSorted((a, b) => b.time.updated - a.time.updated)
-    .flatMap((session) => {
-      const workspace = session.workspaceID ? input.get(session.workspaceID) : undefined
-      return workspace && input.status(workspace.id) === "connected" ? [workspace] : []
-    })
-    .filter((workspace) => workspace.id !== input.omitWorkspaceID)
-    .filter((workspace, index, list) => list.findIndex((item) => item.id === workspace.id) === index)
+  const allWorkspaces = input.workspaces.filter((workspace) => input.status(workspace.id) === "connected")
+  const workspaces = allWorkspaces.toSorted((a, b) => Number(b.timeUsed) - Number(a.timeUsed))
   const recent = workspaces.slice(0, input.limit ?? 3)
 
   return { recent, hasMore: recent.length < workspaces.length }
@@ -68,25 +61,30 @@ async function loadWorkspaceAdapters(input: {
   const dir = input.sync.path.directory || input.sdk.directory
   const url = new URL("/experimental/workspace/adapter", input.sdk.url)
   if (dir) url.searchParams.set("directory", dir)
-  const res = await input.sdk
-    .fetch(url)
-    .then((x) => x.json() as Promise<Adapter[]>)
-    .catch(() => undefined)
-  if (res) return res
-  input.toast.show({
-    message: "Failed to load workspace adapters",
-    variant: "error",
-  })
+  try {
+    const response = await input.sdk.fetch(url)
+    return (await response.json()) as Adapter[]
+  } catch (err) {
+    input.toast.show({
+      title: "Failed to load workspace adapters",
+      message: errorMessage(err),
+      variant: "error",
+    })
+    return undefined
+  }
 }
 
 export async function openWorkspaceSelect(input: {
   dialog: ReturnType<typeof useDialog>
   sdk: ReturnType<typeof useSDK>
   sync: ReturnType<typeof useSync>
+  project: ReturnType<typeof useProject>
   toast: ReturnType<typeof useToast>
   onSelect: (selection: WorkspaceSelection) => Promise<void> | void
 }) {
   input.dialog.clear()
+  await input.sdk.client.experimental.workspace.syncList().catch(() => undefined)
+  await input.project.workspace.sync().catch(() => undefined)
   const adapters = await loadWorkspaceAdapters(input)
   if (!adapters) return
   input.dialog.replace(() => <DialogWorkspaceSelect adapters={adapters} onSelect={input.onSelect} />)
@@ -104,15 +102,23 @@ export async function warpWorkspaceSession(input: {
   copyChanges: boolean
   done?: () => void
 }): Promise<boolean> {
-  const result = await input.sdk.client.experimental.workspace
-    .warp({
+  let result
+  try {
+    result = await input.sdk.client.experimental.workspace.warp({
       id: input.workspaceID,
       sessionID: input.sessionID,
       copyChanges: input.copyChanges,
     })
-    .catch(() => undefined)
+  } catch (err) {
+    input.toast.show({
+      title: "Failed to warp session",
+      message: errorMessage(err),
+      variant: "error",
+    })
+    return false
+  }
   if (!result?.data) {
-    if (result?.error?.name === "VcsApplyError") {
+    if (result?.error && "name" in result.error && result.error.name === "VcsApplyError") {
       await DialogAlert.show(
         input.dialog,
         "Unable to Warp Session",
@@ -122,7 +128,8 @@ export async function warpWorkspaceSession(input: {
     }
 
     input.toast.show({
-      message: `Failed to warp session: ${errorMessage(result?.error ?? "no response")}`,
+      title: "Failed to warp session",
+      message: errorMessage(result?.error ?? "no response"),
       variant: "error",
     })
     return false
@@ -200,8 +207,7 @@ export function DialogWorkspaceSelect(props: {
     const list = adapters()
     if (!list) return []
     const { recent, hasMore } = recentConnectedWorkspaces({
-      sessions: sync.data.session,
-      get: project.workspace.get,
+      workspaces: project.workspace.list(),
       status: project.workspace.status,
       omitWorkspaceID: omittedWorkspaceID(),
     })

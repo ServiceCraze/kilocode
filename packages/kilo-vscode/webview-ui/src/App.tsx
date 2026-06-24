@@ -17,11 +17,12 @@ import { ServerProvider, useServer } from "./context/server"
 import { ProviderProvider, useProvider } from "./context/provider"
 import { ConfigProvider } from "./context/config"
 import { DisplayProvider } from "./context/display"
+import { WorkStyleProvider } from "./context/work-style"
 import { IndexingProvider } from "./context/indexing"
 import { SessionProvider, useSession } from "./context/session"
-import { LanguageProvider } from "./context/language"
+import { LanguageBridge } from "./context/language-bridge"
 import { ChatView } from "./components/chat"
-import { MarketplaceView } from "./components/marketplace"
+import { SidebarEmptyState } from "./components/chat/SidebarEmptyState"
 import { registerExpandedTaskTool } from "./components/chat/TaskToolExpanded"
 import { registerVscodeToolOverrides } from "./components/chat/VscodeToolOverrides"
 
@@ -38,8 +39,8 @@ import { KiloEmbeddingModelsProvider } from "./context/kilo-embedding-models"
 import type { Message as SDKMessage, Part as SDKPart } from "@kilocode/sdk/v2"
 import "./styles/chat.css"
 
-type ViewType = "newTask" | "marketplace" | "history" | "profile" | "settings" | "subAgentViewer"
-const VALID_VIEWS = new Set<string>(["newTask", "marketplace", "history", "profile", "settings", "subAgentViewer"])
+type ViewType = "newTask" | "history" | "profile" | "settings" | "subAgentViewer"
+const VALID_VIEWS = new Set<string>(["newTask", "history", "profile", "settings", "subAgentViewer"])
 
 /**
  * Bridge our session store to the DataProvider's expected Data shape.
@@ -81,7 +82,7 @@ export const DataBridge: Component<{ children: any }> = (props) => {
   })
 
   const providerData = createMemo(() => ({
-    all: Object.values(prov.providers()) as unknown as any[],
+    all: new Map(Object.entries(prov.providers())),
     connected: prov.connected(),
     default: prov.defaults(),
   }))
@@ -172,19 +173,6 @@ export const DataBridge: Component<{ children: any }> = (props) => {
   )
 }
 
-/**
- * Wraps children in LanguageProvider, passing server-side language info.
- * Must be below ServerProvider in the hierarchy.
- */
-export const LanguageBridge: Component<{ children: any }> = (props) => {
-  const server = useServer()
-  return (
-    <LanguageProvider vscodeLanguage={server.vscodeLanguage} languageOverride={server.languageOverride}>
-      {props.children}
-    </LanguageProvider>
-  )
-}
-
 type MermaidImageEvent = CustomEvent<{ dataUrl: string; filename: string }>
 
 export const MermaidDownloadBridge: Component = () => {
@@ -213,6 +201,7 @@ const AppContent: Component = () => {
   // legacy-migration: state-driven flag independent of currentView to avoid
   // race conditions with SettingsEditorProvider's navigate messages.
   const [migrationNeeded, setMigrationNeeded] = createSignal(false)
+  const [migrationSource, setMigrationSource] = createSignal<"legacy" | "roo">("legacy")
   const session = useSession()
   const server = useServer()
   const vscode = useVSCode()
@@ -222,9 +211,6 @@ const AppContent: Component = () => {
       case "plusButtonClicked":
         window.dispatchEvent(new CustomEvent("newTaskRequest"))
         setCurrentView("newTask")
-        break
-      case "marketplaceButtonClicked":
-        setCurrentView("marketplace")
         break
       case "historyButtonClicked":
         setCurrentView("history")
@@ -261,6 +247,10 @@ const AppContent: Component = () => {
     setCurrentView("newTask")
   }
 
+  const handleKiloModel = (message: { type?: string }) => {
+    if (message.type === "selectKiloModel") setCurrentView("newTask")
+  }
+
   onMount(() => {
     const handler = (event: MessageEvent) => {
       const message = event.data
@@ -279,6 +269,7 @@ const AppContent: Component = () => {
         session.selectCloudSession(message.sessionId)
         setCurrentView("newTask")
       }
+      handleKiloModel(message)
       handleForked(message)
       if (message?.type === "viewSubAgentSession" && message.sessionID) {
         console.log("[Kilo New] App: 🔍 viewSubAgentSession:", message.sessionID)
@@ -288,6 +279,7 @@ const AppContent: Component = () => {
       // legacy-migration: state-driven migration wizard
       if (message?.type === "migrationState") {
         console.log("[Kilo New] App: 🔄 migrationState:", message.needed)
+        setMigrationSource(message.source)
         setMigrationNeeded(message.needed)
       }
     }
@@ -304,6 +296,10 @@ const AppContent: Component = () => {
     vscode.postMessage({ type: "forkSession", sessionId, messageId })
   }
 
+  const emptyState = () => (
+    <SidebarEmptyState onSelectSession={handleSelectSession} onShowHistory={() => setCurrentView("history")} />
+  )
+
   return (
     <div class="container">
       {/* legacy-migration start — state-driven overlay, independent of currentView */}
@@ -316,6 +312,7 @@ const AppContent: Component = () => {
                 continueInWorktree
                 onForkMessage={session.status() === "idle" ? handleForkMessage : undefined}
                 promptBoxId="sidebar:fallback"
+                emptyState={emptyState}
               />
             }
           >
@@ -326,10 +323,8 @@ const AppContent: Component = () => {
                 onForkMessage={session.status() === "idle" ? handleForkMessage : undefined}
                 continueInWorktree
                 promptBoxId="sidebar:new-task"
+                emptyState={emptyState}
               />
-            </Match>
-            <Match when={currentView() === "marketplace"}>
-              <MarketplaceView />
             </Match>
             <Match when={currentView() === "history"}>
               <HistoryView onSelectSession={handleSelectSession} onBack={() => setCurrentView("newTask")} />
@@ -345,9 +340,9 @@ const AppContent: Component = () => {
               <Settings
                 tab={settingsTab()}
                 onTabChange={setSettingsTab}
-                onMigrateClick={() => {
+                onMigrationClick={(source) => {
+                  setMigrationSource(source)
                   setMigrationNeeded(true)
-                  vscode.postMessage({ type: "requestLegacyMigrationData" })
                 }}
               />
             </Match>
@@ -357,7 +352,11 @@ const AppContent: Component = () => {
           </Switch>
         }
       >
-        <MigrationWizard onBack={() => setMigrationNeeded(false)} onComplete={() => setMigrationNeeded(false)} />
+        <MigrationWizard
+          source={migrationSource()}
+          onBack={() => setMigrationNeeded(false)}
+          onComplete={() => setMigrationNeeded(false)}
+        />
       </Show>
       {/* legacy-migration end */}
     </div>
@@ -380,19 +379,21 @@ const App: Component = () => {
                       <ProviderProvider>
                         <ConfigProvider>
                           <DisplayProvider>
-                            <IndexingProvider>
-                              <KiloEmbeddingModelsProvider>
-                                <NotificationsProvider>
-                                  <SessionProvider>
-                                    <FeedbackProvider>
-                                      <DataBridge>
-                                        <AppContent />
-                                      </DataBridge>
-                                    </FeedbackProvider>
-                                  </SessionProvider>
-                                </NotificationsProvider>
-                              </KiloEmbeddingModelsProvider>
-                            </IndexingProvider>
+                            <WorkStyleProvider>
+                              <IndexingProvider>
+                                <KiloEmbeddingModelsProvider>
+                                  <NotificationsProvider>
+                                    <SessionProvider>
+                                      <FeedbackProvider>
+                                        <DataBridge>
+                                          <AppContent />
+                                        </DataBridge>
+                                      </FeedbackProvider>
+                                    </SessionProvider>
+                                  </NotificationsProvider>
+                                </KiloEmbeddingModelsProvider>
+                              </IndexingProvider>
+                            </WorkStyleProvider>
                           </DisplayProvider>
                         </ConfigProvider>
                       </ProviderProvider>

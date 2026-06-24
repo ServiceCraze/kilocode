@@ -5,19 +5,17 @@
 
 import { createSignal, createEffect, on, For, Index, onCleanup, Show, untrack, type Component } from "solid-js"
 import { Button } from "@kilocode/kilo-ui/button"
-import { Dialog } from "@kilocode/kilo-ui/dialog"
 import { IconButton } from "@kilocode/kilo-ui/icon-button"
 import { Tooltip } from "@kilocode/kilo-ui/tooltip"
 import { FileIcon } from "@kilocode/kilo-ui/file-icon"
 import { Icon } from "@kilocode/kilo-ui/icon"
 import { showToast } from "@kilocode/kilo-ui/toast"
-import { useDialog } from "@kilocode/kilo-ui/context/dialog"
 import { useSession } from "../../context/session"
 import { useServer } from "../../context/server"
 import { useIndexing } from "../../context/indexing"
+import { indexingButtonVisible } from "../../context/indexing-utils"
 import { useLanguage } from "../../context/language"
 import { useVSCode } from "../../context/vscode"
-import { useWorktreeMode } from "../../context/worktree-mode"
 import { useConfig } from "../../context/config"
 import { useProvider } from "../../context/provider"
 import { ModelSelector } from "../shared/ModelSelector"
@@ -46,9 +44,12 @@ import {
   isPromptBusy,
   isPathMention,
 } from "./prompt-input-utils"
-import type { ReviewComment, TextPart } from "../../types/messages"
+import type { ReviewComment, SendMessageFailedMessage, TextPart } from "../../types/messages"
 import { formatReviewCommentsMarkdown } from "../../utils/review-comment-markdown"
 import { pendingDraftKey, scopeDraftKey, sessionDraftKey } from "../../utils/prompt-drafts"
+import { ReviewComments } from "./ReviewComments"
+import { partReview, reviewBody } from "../../../../src/shared/review-comments"
+import { isEnterKeyCommitNotIme } from "../../utils/ime-enter"
 
 // Per-session input text storage (module-level so it survives remounts)
 const drafts = new Map<string, string>()
@@ -78,12 +79,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const session = useSession()
   const server = useServer()
   const indexing = useIndexing()
-  const { config, features } = useConfig()
+  const { config, globalConfig, settings, features } = useConfig()
   const provider = useProvider()
   const language = useLanguage()
   const vscode = useVSCode()
-  const worktree = useWorktreeMode()
-  const dialog = useDialog()
   const sid = () => session.currentSessionID() ?? props.pendingSessionID ?? session.draftSessionID() ?? undefined
   const ctx = () => {
     const id = props.boxId
@@ -144,6 +143,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const [reviewComments, setReviewComments] = createSignal<ReviewComment[]>([])
   const [enhancing, setEnhancing] = createSignal(false)
   const [autoApprove, setAutoApprove] = createSignal(false)
+  const sandbox = () => config().experimental?.sandbox ?? false
   let enhanceCounter = 0
   let preEnhanceText: string | null = null
 
@@ -163,54 +163,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const removeReviewComment = (id: string) => {
     replaceReviewComments(reviewComments().filter((item) => item.id !== id))
-  }
-
-  const openReviewFile = (item: ReviewComment) => {
-    const id = session.currentSessionID()
-    if (worktree && id) {
-      vscode.postMessage({ type: "agentManager.openFile", sessionId: id, filePath: item.file, line: item.line })
-      dialog.close()
-      return
-    }
-    vscode.postMessage({ type: "openFile", filePath: item.file, line: item.line, column: 1 })
-    dialog.close()
-  }
-
-  const side = (item: ReviewComment) => (item.side === "deletions" ? "-" : "+")
-  const reviewChipTitle = (item: ReviewComment) => `${fileName(item.file)} ${side(item)}${item.line}`
-
-  const showReviewCommentDialog = (item: ReviewComment) => {
-    dialog.show(() => (
-      <Dialog title={language.t("agentManager.review.modalTitle")} fit>
-        <div class="prompt-review-modal">
-          <div class="prompt-review-modal-head">
-            <span class="prompt-review-modal-headline">{reviewChipTitle(item)}</span>
-            <Tooltip value={language.t("agentManager.diff.openFile")} placement="top">
-              <IconButton
-                icon="go-to-file"
-                size="small"
-                variant="ghost"
-                label={language.t("agentManager.diff.openFile")}
-                onClick={() => openReviewFile(item)}
-              />
-            </Tooltip>
-          </div>
-
-          <div class="prompt-review-modal-grid">
-            <span class="prompt-review-modal-label">{language.t("agentManager.review.metaFile")}</span>
-            <code class="prompt-review-modal-value">{item.file}</code>
-            <span class="prompt-review-modal-label">{language.t("agentManager.review.metaLine")}</span>
-            <span class="prompt-review-modal-value">L{item.line}</span>
-            <span class="prompt-review-modal-label">{language.t("agentManager.review.metaComment")}</span>
-            <span class="prompt-review-modal-value">{item.comment}</span>
-          </div>
-
-          <Show when={item.selectedText}>
-            <pre class="prompt-review-modal-snippet">{item.selectedText}</pre>
-          </Show>
-        </div>
-      </Dialog>
-    ))
   }
 
   let textareaRef: HTMLTextAreaElement | undefined
@@ -252,11 +204,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (msgs.length === 0) return
     const texts = msgs.map((m) => {
       const parts = session.getParts(m.id)
-      const raw = parts
-        .filter((p): p is TextPart => p.type === "text")
-        .map((p) => p.text)
+      return parts
+        .filter((part): part is TextPart => part.type === "text")
+        .map((part) => partReview(part.metadata, part.text)?.body ?? part.text.replace(REVIEW_PREFIX, ""))
         .join("")
-      return raw.replace(REVIEW_PREFIX, "")
     })
     history.seed(texts)
   })
@@ -344,9 +295,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   window.addEventListener("exportSessionTranscript", onExport)
   onCleanup(() => window.removeEventListener("exportSessionTranscript", onExport))
 
-  const isBusy = () => isPromptBusy(session.status(), !!props.suggesting?.(), !!props.questioning?.())
+  const isBusy = () =>
+    isPromptBusy(session.status(), !!props.suggesting?.(), !!props.questioning?.(), session.submitting())
+  const showIndexing = () =>
+    indexingButtonVisible(
+      features().indexing,
+      Boolean(settings()["indexing.showButtonWhenDisabled"] ?? true),
+      config(),
+      globalConfig(),
+    )
   const isDisabled = () => !server.isConnected()
-  const canUseSpeech = () => canUseSpeechToText(config(), provider.connected(), server.profileData())
+  const canUseSpeech = () => canUseSpeechToText(config(), provider.authStates())
   const speechModel = () => selectedSpeechToTextModel(config())
   const hasInput = () => text().trim().length > 0 || imageAttach.images().length > 0 || reviewComments().length > 0
   const canSend = () =>
@@ -385,6 +344,39 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       setAutoApprove(message.active)
     }
   })
+
+  const restoreFailed = (failed: SendMessageFailedMessage) => {
+    // Only restore a failed draft when the user has not started another one.
+    const target = scopeDraftKey(
+      boxKey(),
+      sessionDraftKey(failed.sessionID) ?? pendingDraftKey(failed.draftID) ?? "new",
+    )
+    if (target !== draftKey() || text().trim() || reviewComments().length > 0 || imageAttach.images().length > 0) return
+
+    const draft = failed.review ? reviewBody(failed.review, failed.text) : failed.text
+    if (draft === undefined) return
+    if (failed.review) replaceReviewComments(failed.review.comments)
+    if (draft) {
+      setText(draft)
+      mention.seedFromText(draft)
+      if (textareaRef) {
+        textareaRef.value = draft
+        adjustHeight()
+        textareaRef.focus()
+      }
+    }
+    const images = (failed.files ?? [])
+      .filter((file) => file.mime.startsWith("image/") && file.url.startsWith("data:"))
+      .map((file) => ({
+        id: crypto.randomUUID(),
+        filename: file.filename ?? "image",
+        mime: file.mime,
+        dataUrl: file.url,
+      }))
+    if (images.length === 0) return
+    imageAttach.replace(images)
+    imageDrafts.set(target, images)
+  }
 
   const unsubscribe = vscode.onMessage((message) => {
     if (message.type === "setChatBoxMessage") {
@@ -428,36 +420,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
 
     if (message.type === "sendMessageFailed") {
-      const failed = message as import("../../types/messages").SendMessageFailedMessage
-      // Only restore draft if the failure is for the current session and the
-      // input is empty (user hasn't started typing something new).
-      const target = scopeDraftKey(
-        boxKey(),
-        sessionDraftKey(failed.sessionID) ?? pendingDraftKey(failed.draftID) ?? "new",
-      )
-      if (target === draftKey() && !text().trim() && imageAttach.images().length === 0) {
-        if (failed.text) {
-          setText(failed.text)
-          mention.seedFromText(failed.text)
-          if (textareaRef) {
-            textareaRef.value = failed.text
-            adjustHeight()
-            textareaRef.focus()
-          }
-        }
-        const images = (failed.files ?? [])
-          .filter((f) => f.mime.startsWith("image/") && f.url.startsWith("data:"))
-          .map((f) => ({
-            id: crypto.randomUUID(),
-            filename: f.filename ?? "image",
-            mime: f.mime,
-            dataUrl: f.url,
-          }))
-        if (images.length > 0) {
-          imageAttach.replace(images)
-          imageDrafts.set(target, images)
-        }
-      }
+      restoreFailed(message as SendMessageFailedMessage)
     }
 
     if (message.type === "sessionCreated" && message.draftID) {
@@ -662,7 +625,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       session.abort()
       return
     }
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    if (isEnterKeyCommitNotIme(e) && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
@@ -772,6 +735,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     const pending = reviewComments()
     const review = pending.length > 0 ? formatReviewCommentsMarkdown(pending) : ""
     const message = draft && review ? `${review}\n\n${draft}` : draft || review
+    const data = review ? { version: 1 as const, comments: pending } : undefined
     if (
       (!message && imgs.length === 0) ||
       isDisabled() ||
@@ -801,6 +765,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       return undefined
     })
     if (hasGit() && hasGitChangesMention(message) && !gitFile) return
+    if (isDisabled()) return
 
     const allFiles = [
       ...mentionFiles,
@@ -811,12 +776,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     const attachments = allFiles.length > 0 ? allFiles : undefined
 
     // Server-side slash command (cmdMatch/matched already computed above)
-    if (matched) {
-      const rest = draft.slice(cmdMatch![0].length).trim()
-      const args = review && rest ? `${review}\n\n${rest}` : rest || review
+    if (matched && !data) {
+      const args = draft.slice(cmdMatch![0].length).trim()
       session.sendCommand(matched.name, args, sel?.providerID, sel?.modelID, attachments, pendingId, context)
     } else {
-      session.sendMessage(message, sel?.providerID, sel?.modelID, attachments, pendingId, context)
+      session.sendMessage(message, sel?.providerID, sel?.modelID, attachments, pendingId, context, data)
     }
 
     drafts.delete(key)
@@ -844,54 +808,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       onDrop={imageAttach.handleDrop}
     >
       <Show when={reviewComments().length > 0}>
-        <div class="prompt-review-comments">
-          <div class="prompt-review-comments-header">
-            <span class="prompt-review-comments-title">
-              {language.t("agentManager.review.inlineCount", { count: reviewComments().length })}
-            </span>
-            <Button variant="ghost" size="small" onClick={clearReviewComments}>
-              {language.t("agentManager.review.clearAll")}
-            </Button>
-          </div>
-          <div class="prompt-review-chip-list">
-            <For each={reviewComments()}>
-              {(item) => (
-                <div class="prompt-review-chip">
-                  <button type="button" class="prompt-review-chip-body" onClick={() => showReviewCommentDialog(item)}>
-                    <span class="prompt-review-chip-icon">
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <path
-                          d="M3.2 11.8l-.6 2.5 2.3-1.2h6.1A2.8 2.8 0 0013.8 10V5A2.8 2.8 0 0011 2.2H5A2.8 2.8 0 002.2 5v5a2.8 2.8 0 001 2.2z"
-                          stroke="currentColor"
-                          stroke-width="1.4"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </span>
-                    <span class="prompt-review-chip-copy">
-                      <span class="prompt-review-chip-main">
-                        <span class="prompt-review-chip-title">{fileName(item.file)}</span>
-                        <span class="prompt-review-chip-line">
-                          {side(item)}
-                          {item.line}
-                        </span>
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    class="prompt-review-chip-remove"
-                    onClick={() => removeReviewComment(item.id)}
-                    aria-label={language.t("common.delete")}
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-            </For>
-          </div>
-        </div>
+        <ReviewComments
+          comments={reviewComments()}
+          sessionID={sid()}
+          onRemove={removeReviewComment}
+          onClear={clearReviewComments}
+        />
       </Show>
       <Show when={mention.showMention()}>
         <div class="file-mention-dropdown" ref={dropdownRef}>
@@ -1102,7 +1024,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           </Show>
         </div>
         <div class="prompt-input-hint-actions">
-          <Show when={features().indexing}>
+          <Show when={showIndexing()}>
             <Tooltip value={indexing.status().message || indexing.label()} placement="top">
               <Button
                 variant="ghost"
@@ -1146,11 +1068,37 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   : language.t("prompt.action.autoApprove.enable")
               }
               aria-pressed={autoApprove()}
-              class={`prompt-auto-approve-button ${autoApprove() ? "prompt-auto-approve-button--active" : ""}`}
+              class={`prompt-status-button ${autoApprove() ? "prompt-status-button--active" : ""}`}
             >
               <Icon name="shield" size="small" />
             </Button>
           </Tooltip>
+          <Show when={features().sandboxControls}>
+            <Tooltip
+              value={
+                sandbox() ? language.t("prompt.action.sandbox.enabled") : language.t("prompt.action.sandbox.disabled")
+              }
+              placement="top"
+            >
+              <Button
+                variant="ghost"
+                size="small"
+                onClick={() =>
+                  vscode.postMessage({
+                    type: "updateConfig",
+                    config: { experimental: { sandbox: !sandbox() } },
+                  })
+                }
+                aria-label={
+                  sandbox() ? language.t("prompt.action.sandbox.disable") : language.t("prompt.action.sandbox.enable")
+                }
+                aria-pressed={sandbox()}
+                class={`prompt-status-button ${sandbox() ? "prompt-status-button--active" : ""}`}
+              >
+                <Icon name="lock" size="small" />
+              </Button>
+            </Tooltip>
+          </Show>
           <Tooltip value={language.t("prompt.action.enhance")} placement="top">
             <Button
               variant="ghost"

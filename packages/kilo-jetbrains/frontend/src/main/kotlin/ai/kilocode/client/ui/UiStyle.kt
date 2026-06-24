@@ -6,6 +6,7 @@ import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.Color
+import javax.swing.AbstractButton
 import javax.swing.JComponent
 import javax.swing.UIManager
 
@@ -33,6 +34,20 @@ object UiStyle {
         fun component() = com.intellij.util.ui.JBValue.UIInteger("Component.arc", 8).get()
     }
 
+    /** Platform balloon styling used by lightweight contextual overlays. */
+    object Balloon {
+        fun bg(): Color = UIUtil.getPanelBackground()
+
+        fun border(): Color = JBUI.CurrentTheme.Popup.borderColor(true)
+
+        /** New UI parameter-info balloon insets: symmetric vertical padding with wider sides. */
+        fun insets() = JBUI.insets(6, 12, 6, 12)
+
+        fun pointer() = JBUI.size(16, 8)
+
+        fun arc() = JBUI.scale(8)
+    }
+
     /** Theme-aware colors and color math used by multiple UI surfaces. */
     object Colors {
         fun bg(): Color = UIUtil.getPanelBackground()
@@ -45,11 +60,10 @@ object UiStyle {
         fun editorBackground(): Color = JBColor.lazy { EditorColorsManager.getInstance().globalScheme.defaultBackground }
 
         /**
-         * Card surface background: follows the active theme's text-field/input surface.
-         * Uses [UIUtil.getTextFieldBackground] as the semantic platform surface color for
-         * contained panels. Falls back to the panel background when unavailable.
+         * Contained panel background: follows the active theme's text-field/input surface.
+         * Falls back to the panel background when unavailable.
          */
-        fun cardBg(): Color = JBColor.lazy {
+        fun contentBackground(): Color = JBColor.lazy {
             UIManager.getColor("TextField.background") ?: UIUtil.getPanelBackground()
         }
 
@@ -64,7 +78,7 @@ object UiStyle {
         fun badgeBg(): Color = JBColor.lazy {
             UIManager.getColor("Badge.background")
                 ?: UIManager.getColor("Label.infoBackground")
-                ?: blend(cardBg(), fg(), 0.16f)
+                ?: blend(contentBackground(), fg(), 0.16f)
         }
 
         /** Filled badge text color paired with [badgeBg]. */
@@ -90,8 +104,8 @@ object UiStyle {
             Color.WHITE,
         )
 
-        /** Card border color shared across profile cards. */
-        fun cardBorder(): Color = JBColor.namedColor("Component.borderColor", JBColor.border())
+        /** Border color shared across contained panels. */
+        fun contentBorder(): Color = JBColor.namedColor("Component.borderColor", JBColor.border())
 
         /**
          * Floating panel background: white in light themes, black in dark themes.
@@ -110,6 +124,20 @@ object UiStyle {
                 ?: UIManager.getColor("Label.warningForeground")
                 ?: UIUtil.getContextHelpForeground()
         }
+
+        fun infoOverlayBackground(): Color = JBUI.CurrentTheme.NotificationInfo.backgroundColor()
+
+        fun infoOverlayForeground(): Color = JBUI.CurrentTheme.NotificationInfo.foregroundColor()
+
+        fun infoOverlayBorder(): Color = JBUI.CurrentTheme.NotificationInfo.borderColor()
+
+        fun actionHoverBackground(): Color = JBUI.CurrentTheme.ActionButton.hoverBackground()
+
+        fun errorOverlayBackground(): Color = JBUI.CurrentTheme.NotificationError.backgroundColor()
+
+        fun errorOverlayForeground(): Color = JBUI.CurrentTheme.NotificationError.foregroundColor()
+
+        fun errorOverlayBorder(): Color = JBUI.CurrentTheme.NotificationError.borderColor()
 
         internal fun contrast(base: Color, delta: Int): Color {
             val step = if (bright(base)) -delta else delta
@@ -171,6 +199,36 @@ object UiStyle {
     object Components {
         fun transparent(vararg components: JComponent) {
             components.forEach { it.isOpaque = false }
+        }
+
+        fun actionForeground(enabled: Boolean): Color = if (enabled) {
+            UIManager.getColor("Button.foreground") ?: UIUtil.getLabelForeground()
+        } else {
+            UIManager.getColor("Button.disabledText") ?: UIUtil.getContextHelpForeground()
+        }
+
+        fun actionBackground(): Color = UIManager.getColor("Button.background") ?: UIUtil.getPanelBackground()
+
+        fun actionBorder() = JBUI.Borders.compound(
+            JBUI.Borders.customLine(UIUtil.getBoundsColor()),
+            JBUI.Borders.empty(Gap.sm(), Gap.pad()),
+        )
+
+        fun actionLabel(component: JComponent, enabled: Boolean = component.isEnabled) {
+            component.foreground = actionForeground(enabled)
+            component.background = actionBackground()
+            component.border = actionBorder()
+            component.isOpaque = true
+        }
+
+        fun actionButton(button: AbstractButton) {
+            button.foreground = actionForeground(button.isEnabled)
+            button.background = actionBackground()
+            button.border = actionBorder()
+            button.isOpaque = true
+            button.isBorderPainted = true
+            button.isContentAreaFilled = false
+            button.isFocusPainted = false
         }
     }
 }

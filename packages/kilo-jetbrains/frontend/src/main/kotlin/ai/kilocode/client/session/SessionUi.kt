@@ -8,20 +8,34 @@ import ai.kilocode.client.migration.KiloMigrationService
 import ai.kilocode.client.migration.MigrationUiController
 import ai.kilocode.client.migration.MigrationUiState
 import ai.kilocode.client.migration.ui.MigrationOverlayPanel
+import ai.kilocode.client.plugin.KiloBundle
+import ai.kilocode.client.session.model.FileAttachment
 import ai.kilocode.client.session.model.SessionModelEvent
 import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.client.session.scroll.SessionScroll
 import ai.kilocode.client.session.ui.ConnectionPanel
-import ai.kilocode.client.session.ui.EmptySessionPanel
+import ai.kilocode.client.session.ui.empty.EmptySessionPanel
 import ai.kilocode.client.session.ui.LoadingPanel
 import ai.kilocode.client.session.ui.ReasoningPicker
 import ai.kilocode.client.session.ui.mode.ModePicker
 import ai.kilocode.client.session.ui.model.ModelPicker
+import ai.kilocode.client.session.ui.prompt.KiloPromptCompletionProvider
+import ai.kilocode.client.session.ui.prompt.MentionAction
 import ai.kilocode.client.session.ui.prompt.PromptPanel
+import ai.kilocode.client.session.ui.prompt.SlashAction
+import ai.kilocode.client.session.ui.prompt.mentionParts as promptMentionParts
 import ai.kilocode.client.session.ui.account.SessionAccountOverlay
+import ai.kilocode.client.session.ui.SessionDropOverlay
 import ai.kilocode.client.session.ui.SessionRootPanel
 import ai.kilocode.client.session.ui.SessionMessageListPanel
+import ai.kilocode.client.session.ui.attachment.AttachmentEditorKind
+import ai.kilocode.client.session.ui.attachment.attachmentParams
+import ai.kilocode.client.session.ui.attachment.ensureAttachmentEditorKind
+import ai.kilocode.client.session.ui.attachment.isEmbeddedAttachment
 import ai.kilocode.client.session.ui.header.SessionHeaderPanel
+import ai.kilocode.client.session.ui.selection.SessionContextMenu
+import ai.kilocode.client.session.ui.selection.SessionHoverCopyOverlay
+import ai.kilocode.client.session.ui.selection.SessionSelection
 import ai.kilocode.client.session.ui.style.SessionEditorStyle
 import ai.kilocode.client.session.ui.style.SessionEditorStyleTarget
 import ai.kilocode.client.session.controller.EVENT_FLUSH_MS
@@ -31,12 +45,24 @@ import ai.kilocode.client.session.ui.style.SessionUiStyle
 import ai.kilocode.client.session.views.LoginRequiredView
 import ai.kilocode.client.session.views.permission.PermissionView
 import ai.kilocode.client.session.views.question.QuestionView
+import ai.kilocode.client.settings.KiloSettingsConfigurable
 import ai.kilocode.client.settings.profile.UserProfileConfigurable
+import ai.kilocode.client.telemetry.Telemetry
 import ai.kilocode.client.ui.layout.Stack
+import ai.kilocode.client.util.UiTimerSource
+import ai.kilocode.client.util.UiTimers
+import ai.kilocode.client.vfs.KiloVfsManager
 import ai.kilocode.log.ChatLogSummary
+import ai.kilocode.rpc.dto.PromptDto
+import ai.kilocode.rpc.dto.PromptPartDto
 import com.intellij.util.ui.JBUI
 import ai.kilocode.log.KiloLog
 import com.intellij.ide.BrowserUtil
+import com.intellij.ide.TextCopyProvider
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -47,6 +73,7 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurableWithId
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -56,8 +83,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.awt.BorderLayout
+import java.awt.event.HierarchyEvent
+import java.net.URI
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.UIManager
 
 /**
  * Top-level session UI composition root.
@@ -76,10 +107,12 @@ class SessionUi(
     private val manager: SessionManager? = null,
     private val workspaces: KiloWorkspaceService = service(),
     private val migration: MigrationUiController = service<KiloMigrationService>(),
-) : JPanel(BorderLayout()), Disposable, SessionEditorStyleTarget {
+    private val timers: UiTimerSource = UiTimers,
+) : JPanel(BorderLayout()), Disposable, SessionEditorStyleTarget, UiDataProvider {
 
     companion object {
         private val LOG = KiloLog.create(SessionUi::class.java)
+        private const val HIDE_MS = 120
     }
 
     private val project = project
@@ -96,7 +129,13 @@ class SessionUi(
             ?: EVENT_FLUSH_MS
 
     private val controller = SessionController(
-        this, ref, sessions, workspace, app, cs, comp = this,
+        parent = this,
+        ref = ref,
+        sessions = sessions,
+        workspace = workspace,
+        app = app,
+        cs = cs,
+        comp = this,
         flushMs = flushMs,
         condense = Registry.`is`("kilo.session.condense", true),
         displayMs = displayMs,
@@ -105,11 +144,18 @@ class SessionUi(
         afterUpdate = { if (!opening) scroll.followBottom(it) },
         loaded = ::onSessionLoaded,
         openProfileAction = ::openProfileSettings,
+        timers = timers,
     )
 
 
     private lateinit var root: SessionRootPanel
     private lateinit var account: SessionAccountOverlay
+    private lateinit var drop: SessionDropOverlay
+    private lateinit var overlay: SessionHoverCopyOverlay
+    private val hide = timers.timer(HIDE_MS, repeats = false) {
+        if (disposed || !this::drop.isInitialized) return@timer
+        drop.setActive(false)
+    }
 
     private lateinit var sessionContent: JPanel
 
@@ -129,14 +175,28 @@ class SessionUi(
     private lateinit var connection: ConnectionPanel
 
     private lateinit var prompt: PromptPanel
+    private lateinit var completion: KiloPromptCompletionProvider
     private lateinit var load: LoadingPanel
     private lateinit var migrationOverlay: MigrationOverlayPanel
     private var empty: EmptySessionPanel? = null
     private var modalFocus: (() -> JComponent)? = null
     private var style = SessionEditorStyle.current()
+    private val selection = SessionSelection()
+    private val provider = object : TextCopyProvider() {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+        override fun getTextLinesToCopy(): Collection<String>? {
+            val text = selection.selectedText()?.takeIf { it.isNotEmpty() } ?: return null
+            return listOf(text)
+        }
+    }
+    private var editorTheme = style.editorScheme
+    private var colorTheme = UIManager.getLookAndFeel()
+    private var disposed = false
 
     init {
         buildUi()
+        Disposer.register(this, selection)
         scroll.show(body(controller.model.state))
         bindUi()
         bindStyle()
@@ -147,12 +207,14 @@ class SessionUi(
     }
 
     override fun addNotify() {
+        if (disposed) return
         super.addNotify()
         resumeOpen()
     }
 
     override fun doLayout() {
         super.doLayout()
+        if (disposed) return
         resumeOpen()
     }
 
@@ -164,8 +226,9 @@ class SessionUi(
 
     internal fun currentStyle() = style
 
-    @RequiresEdt
-    internal fun canDisposeInactive(): Boolean = controller.model.state is SessionState.Idle
+    override fun uiDataSnapshot(sink: DataSink) {
+        sink[PlatformDataKeys.COPY_PROVIDER] = provider
+    }
 
     @RequiresEdt
     internal fun activityKind(): SessionActivityKind? = when (val state = controller.model.state) {
@@ -201,6 +264,7 @@ class SessionUi(
 
     private fun buildUi() {
         root = SessionRootPanel()
+        SessionContextMenu.install(root, this)
 
         migrationOverlay = MigrationOverlayPanel().apply {
             onSkip = { migration.skip() }
@@ -231,6 +295,11 @@ class SessionUi(
             )
         }
 
+        overlay = SessionHoverCopyOverlay(root, this)
+        root.addOverlay(overlay) { pane, child ->
+            overlay.bounds(pane, child)
+        }
+
         sessionContent = JPanel(BorderLayout())
 
         blankBody = JPanel(BorderLayout()).apply {
@@ -245,22 +314,62 @@ class SessionUi(
             reject = { id -> controller.rejectQuestion(id) },
             follow = { scroll.following() },
             scroll = { scroll.followBottom(it) },
+            selection = selection,
         )
         permission = PermissionView(
             reply = { id, dto -> controller.replyPermission(id, dto) },
+            selection = selection,
         )
-        login = LoginRequiredView(openProfile = { controller.openProfile() }, dismiss = { controller.dismissLoginRequired() })
-        messageBody = SessionMessageListPanel(controller.model, this, question, permission, login, ::openFile, ::openUrl)
+        login = LoginRequiredView(
+            openProfile = { controller.openProfile() },
+            dismiss = { controller.dismissLoginRequired() },
+            selection = selection,
+        )
+        messageBody = SessionMessageListPanel(
+            controller.model,
+            this,
+            question,
+            permission,
+            login,
+            ::openFile,
+            ::openUrl,
+            selection,
+            ::openAttachment,
+            repo = workspace.directory,
+            resize = { anchor, fn -> scroll.preserve(anchor, fn) },
+        )
         header = SessionHeaderPanel(controller, this)
 
         scroll = SessionScroll(root, sessionContent, messageBody, blankBody)
+        scroll.onScroll = overlay::clear
         connection = ConnectionPanel(this, controller)
 
+        completion = KiloPromptCompletionProvider(
+            workspace = workspace,
+            service = workspaces,
+            actions = slashActions(),
+            mentions = mentionActions(),
+            scope = cs,
+        )
         prompt = PromptPanel(
             project = project,
-            onSend = { text -> sendPrompt(text) },
+            selection = selection,
+            onSend = { text, files -> sendPrompt(text, files) },
             onAbort = { controller.abort() },
+            onEnhance = controller::enhancePrompt,
+            onMentions = ::mentionParts,
+            completion = completion,
         )
+
+        drop = SessionDropOverlay()
+        root.addOverlay(drop) { pane, _ ->
+            java.awt.Rectangle(0, 0, pane.width, pane.height)
+        }
+        root.overlay.setComponentZOrder(drop, 0)
+        prompt.onFileDrag = ::syncDrop
+        prompt.installFileDrop(root, "session-root")
+        // The visual overlay returns contains(false) so normal UI remains clickable.
+        // Registering it as a native DnD target makes IntelliJ resolve a null over-component.
 
         sessionContent.add(header, BorderLayout.NORTH)
         sessionContent.add(scroll.component, BorderLayout.CENTER)
@@ -271,17 +380,26 @@ class SessionUi(
 
     private fun bindUi() {
         prompt.mode.onSelect = { item -> controller.selectAgent(item.id) }
-        prompt.model.onSelect = { item -> controller.selectModel(item.provider, item.id) }
+        prompt.model.onSelect = { item ->
+            prompt.setAttachmentEnabled(item.attachment)
+            controller.selectModel(item.provider, item.id)
+        }
         prompt.reasoning.onSelect = { item -> controller.selectVariant(item.id) }
         prompt.onReset = { controller.clearModelOverride() }
-        prompt.onChange = { scroll.followTail() }
+        prompt.onChange = { scroll.refresh() }
         prompt.onAutoApproveToggle = { value ->
             controller.setAutoApprove(value)
             prompt.setAutoApprove(controller.autoApprove)
         }
         prompt.setAutoApprove(controller.autoApprove)
         prompt.model.favorites = { app.favorites.value }
-        prompt.model.onFavoriteToggle = { item -> app.toggleModelFavorite(item.provider, item.id) }
+        prompt.model.onFavoriteToggle = { item ->
+            Telemetry.send(
+                "Model Favorite Toggled",
+                mapOf("provider" to item.provider, "modelId" to item.id),
+            )
+            app.toggleModelFavorite(item.provider, item.id)
+        }
 
         controller.addListener(this) { event ->
             when (event) {
@@ -297,21 +415,26 @@ class SessionUi(
                     }, m.agent)
                     val items = m.models.map {
                         ModelPicker.Item(
-                            it.id,
-                            it.display,
-                            it.provider,
-                            it.providerName,
-                            it.recommendedIndex,
-                            it.free,
-                            it.variants,
+                            id = it.id,
+                            display = it.display,
+                            provider = it.provider,
+                            providerName = it.providerName,
+                            recommendedIndex = it.recommendedIndex,
+                            free = it.free,
+                            byok = it.byok,
+                            variants = it.variants,
+                            attachment = it.attachment,
+                            mayTrainOnYourPrompts = it.mayTrainOnYourPrompts,
                         )
                     }
                     val selected =
                         m.model?.let { full -> items.firstOrNull { it.key == full }?.key }
                     prompt.model.setItems(items, selected)
+                    prompt.setAttachmentEnabled(items.firstOrNull { it.key == selected }?.attachment ?: true)
                     prompt.reasoning.setItems(m.variants.map { ReasoningPicker.Item(it, variantTitle(it)) }, m.variant)
                     prompt.setResetVisible(m.modelOverride)
                     prompt.setReady(m.isReady())
+                    prompt.refreshHighlights()
                 }
 
                 is SessionControllerEvent.ViewChanged.ShowProgress -> {
@@ -327,6 +450,7 @@ class SessionUi(
                         history = { manager?.showHistory() },
                         activity = { manager?.activity() ?: sessions.activity() },
                         titles = { manager?.titles().orEmpty() },
+                        timers = timers,
                     )
                     empty = panel
                     scroll.show(panel.view)
@@ -377,6 +501,17 @@ class SessionUi(
         }
     }
 
+    @RequiresEdt
+    private fun syncDrop(value: Boolean) {
+        if (disposed) return
+        if (value) {
+            hide.stop()
+            drop.setActive(true)
+            return
+        }
+        hide.restart()
+    }
+
     private fun bindMigration() {
         cs.launch {
             migration.state.collect { state ->
@@ -405,14 +540,22 @@ class SessionUi(
     }
 
     private fun bindStyle() {
+        addHierarchyListener { event ->
+            if ((event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong()) == 0L) return@addHierarchyListener
+            if (!isShowing) return@addHierarchyListener
+            applyStyleIfThemeChanged()
+        }
+
         val bus = ApplicationManager.getApplication().messageBus.connect(this)
         bus.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
             ApplicationManager.getApplication().invokeLater {
+                if (disposed) return@invokeLater
                 applyStyle(SessionEditorStyle.current())
             }
         })
         bus.subscribe(LafManagerListener.TOPIC, LafManagerListener {
             ApplicationManager.getApplication().invokeLater {
+                if (disposed) return@invokeLater
                 applyStyle(SessionEditorStyle.current())
             }
         })
@@ -452,17 +595,74 @@ class SessionUi(
         }
     }
 
-    private fun sendPrompt(text: String) {
-        if (text.isBlank()) return
+    private fun sendPrompt(text: String, files: List<PromptPartDto>) {
+        if (text.isBlank() && files.isEmpty()) return
+        val parts = buildList {
+            text.takeIf { it.isNotBlank() }?.let { add(PromptPartDto(type = "text", text = it)) }
+            addAll(files)
+        }
         LOG.debug {
             val agent = controller.model.agent ?: "none"
             val model = controller.model.model ?: "none"
-            "${ChatLogSummary.prompt(text)} agent=$agent model=$model ready=${controller.ready}"
+            "${ChatLogSummary.prompt(PromptDto(parts = parts))} agent=$agent model=$model ready=${controller.ready}"
         }
         prompt.clear()
         val follow = scroll.atBottom()
-        controller.prompt(text)
+        val action = completion.clientAction(text)
+        if (action != null) {
+            action.action()
+            scroll.followBottom(follow)
+            return
+        }
+        val command = completion.serverCommand(text)
+        if (command != null) {
+            controller.command(command.first, command.second, files)
+            scroll.followBottom(follow)
+            return
+        }
+        controller.prompt(text, files)
         scroll.followBottom(follow)
+    }
+
+    private fun slashActions(): List<SlashAction> {
+        val fns: Map<SlashAction.Spec, () -> Unit> = mapOf(
+            SlashAction.NEW to { manager?.newSession() },
+            SlashAction.SESSIONS to { manager?.showHistory() },
+            SlashAction.MODELS to { prompt.model.open() },
+            SlashAction.AGENTS to { prompt.mode.open() },
+            SlashAction.VARIANT to { prompt.reasoning.open() },
+            SlashAction.COMPACT to { controller.compact() },
+            SlashAction.SETTINGS to { openKiloSettings() },
+            SlashAction.HELP to { BrowserUtil.browse("https://kilo.ai/docs") },
+        )
+        return SlashAction.ALL.map { spec -> bind(spec, fns.getValue(spec)) }
+    }
+
+    private fun bind(spec: SlashAction.Spec, action: () -> Unit) = SlashAction(
+        spec.name,
+        KiloBundle.message(spec.descriptionKey),
+        spec.hints,
+        action,
+    )
+
+    private fun mentionActions(): List<MentionAction> = MentionAction.ALL.map(::bind)
+
+    private fun bind(spec: MentionAction.Spec) = MentionAction(
+        spec.name,
+        KiloBundle.message(spec.descriptionKey),
+        spec.hints,
+        spec.available,
+    )
+
+    private fun mentionParts(text: String): List<PromptPartDto> = runBlockingCancellable {
+        val names = MentionAction.ALL.mapTo(mutableSetOf()) { it.name }
+        promptMentionParts(
+            text = text,
+            directory = workspace.directory,
+            reserved = names,
+            resolve = { path -> workspaces.files(workspace.directory, path).isNotEmpty() },
+            gitChanges = { workspaces.gitChanges(workspace.directory) },
+        )
     }
 
     private fun openFile(path: String) {
@@ -475,7 +675,56 @@ class SessionUi(
         BrowserUtil.browse(url)
     }
 
+    private fun openAttachment(messageId: String, item: FileAttachment) {
+        val url = item.url.takeIf { it.isNotBlank() } ?: run {
+            LOG.info("kind=attachment-open skipped=true reason=blank-url message=$messageId part=${item.id} name=${attachmentName(item)} mime=${item.mime}")
+            return
+        }
+        LOG.info(
+            "kind=attachment-open session=${controller.id ?: "none"} message=$messageId part=${item.id} " +
+                "name=${attachmentName(item)} mime=${item.mime} url=${attachmentUrl(url)} dir=${workspace.directory}"
+        )
+        if (isEmbeddedAttachment(url)) {
+            val id = controller.id ?: run {
+                LOG.info("kind=attachment-open skipped=true reason=missing-session message=$messageId part=${item.id} name=${attachmentName(item)}")
+                return
+            }
+            LOG.info("kind=attachment-open route=kilo-vfs session=$id message=$messageId part=${item.id} name=${attachmentName(item)}")
+            ensureAttachmentEditorKind()
+            project.service<KiloVfsManager>().open(
+                AttachmentEditorKind.ID,
+                attachmentParams(id, messageId, item, attachmentName(item), workspace.directory),
+            )
+            return
+        }
+        val uri = runCatching { URI.create(url) }.getOrNull() ?: run {
+            LOG.info("kind=attachment-open skipped=true reason=invalid-uri message=$messageId part=${item.id} url=${attachmentUrl(url)}")
+            return
+        }
+        if (uri.scheme == "file") {
+            val path = runCatching { Path.of(uri).toString() }.getOrNull() ?: run {
+                LOG.info("kind=attachment-open skipped=true reason=invalid-file-uri message=$messageId part=${item.id} url=${attachmentUrl(url)}")
+                return
+            }
+            LOG.info("kind=attachment-open route=file session=${controller.id ?: "none"} message=$messageId part=${item.id} path=$path")
+            openFile(path)
+            return
+        }
+        LOG.info("kind=attachment-open route=browser session=${controller.id ?: "none"} message=$messageId part=${item.id} url=${attachmentUrl(url)}")
+        openUrl(url)
+    }
+
+    private fun attachmentName(item: FileAttachment) = item.filename?.takeIf { it.isNotBlank() }
+        ?: item.url.substringBefore(',').substringAfterLast('/').takeIf { it.isNotBlank() }
+        ?: "attachment"
+
+    private fun attachmentUrl(url: String): String {
+        val scheme = url.substringBefore(':', missingDelimiterValue = "none")
+        return "scheme=$scheme chars=${url.length} embedded=${isEmbeddedAttachment(url)}"
+    }
+
     private fun onStateChanged(state: SessionState) {
+        if (disposed) return
         prompt.setBusy(state.isBusy())
         load.setState(state)
         scroll.setQuestionPending(questionPending(state))
@@ -489,18 +738,35 @@ class SessionUi(
     }
 
     private fun refresh() {
+        if (disposed) return
         scroll.refresh()
         root.revalidate()
         root.repaint()
     }
 
     override fun applyStyle(style: SessionEditorStyle) {
+        if (disposed) return
         this.style = style
+        selection.applyStyle(style)
+        editorTheme = style.editorScheme
+        colorTheme = UIManager.getLookAndFeel()
+        background = style.editorBackground
+        root.content.background = style.editorBackground
+        sessionContent.background = style.editorBackground
+        blankBody.background = style.editorBackground
         load.applyStyle(style)
         header.applyStyle(style)
         prompt.applyStyle(style)
         scroll.applyStyle(style)
         refresh()
+    }
+
+    private fun applyStyleIfThemeChanged() {
+        if (disposed) return
+        val next = SessionEditorStyle.current()
+        val laf = UIManager.getLookAndFeel()
+        if (editorTheme === next.editorScheme && colorTheme == laf) return
+        applyStyle(next)
     }
 
     private fun openProfileSettings() {
@@ -513,7 +779,24 @@ class SessionUi(
         )
     }
 
-    override fun dispose() {}
+    private fun openKiloSettings() {
+        ShowSettingsUtil.getInstance().showSettingsDialog(
+            project,
+            Predicate { cfg: Configurable ->
+                cfg is ConfigurableWithId && cfg.getId() == KiloSettingsConfigurable.ID
+            },
+            { _: Configurable -> },
+        )
+    }
+
+    override fun dispose() {
+        disposed = true
+        hide.stop()
+        modalFocus = null
+        empty = null
+        if (this::root.isInitialized) root.setModalContent(null)
+        removeAll()
+    }
 }
 
 private fun variantTitle(value: String): String = value.replaceFirstChar { it.titlecase() }

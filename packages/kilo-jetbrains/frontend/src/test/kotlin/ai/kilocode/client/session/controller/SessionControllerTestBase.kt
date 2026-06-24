@@ -8,6 +8,8 @@ import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.client.testing.FakeAppRpcApi
 import ai.kilocode.client.testing.FakeWorkspaceRpcApi
 import ai.kilocode.client.testing.FakeSessionRpcApi
+import ai.kilocode.client.testing.TestCoroutines
+import ai.kilocode.client.testing.TestUiTimers
 import ai.kilocode.client.app.KiloWorkspaceService
 import ai.kilocode.client.app.Workspace
 import ai.kilocode.client.session.SessionRef
@@ -27,6 +29,7 @@ import ai.kilocode.rpc.dto.ProviderDto
 import ai.kilocode.rpc.dto.ProvidersDto
 import ai.kilocode.rpc.dto.SessionDto
 import ai.kilocode.rpc.dto.SessionTimeDto
+import ai.kilocode.rpc.dto.TelemetryCaptureDto
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Disposer
@@ -34,8 +37,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.UIUtil
 import java.awt.event.HierarchyEvent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
@@ -94,7 +95,9 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
     protected lateinit var app: KiloAppService
     protected lateinit var workspaces: KiloWorkspaceService
     protected lateinit var workspace: Workspace
+    protected lateinit var timers: TestUiTimers
 
+    private lateinit var coroutines: TestCoroutines
     protected lateinit var scope: CoroutineScope
     protected lateinit var parent: Disposable
 
@@ -103,8 +106,10 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
         rpc = FakeSessionRpcApi()
         appRpc = FakeAppRpcApi()
         projectRpc = FakeWorkspaceRpcApi()
+        timers = TestUiTimers()
 
-        scope = CoroutineScope(SupervisorJob())
+        coroutines = TestCoroutines()
+        scope = coroutines.scope
         parent = Disposer.newDisposable("test")
 
         sessions = KiloSessionService(project, scope, rpc)
@@ -116,7 +121,7 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             Disposer.dispose(parent)
-            scope.cancel()
+            coroutines.close { edt { UIUtil.dispatchAllInvocationEvents() } }
         } finally {
             super.tearDown()
         }
@@ -154,19 +159,21 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
     ): SessionController {
         val root = Root()
         val m = SessionController(
-            parent,
-            ref,
-            sessions,
-            workspace,
-            app,
-            scope,
-            root,
-            flushMs,
-            condense,
-            displayMs,
+            parent = parent,
+            ref = ref,
+            sessions = sessions,
+            workspace = workspace,
+            app = app,
+            cs = scope,
+            comp = root,
+            flushMs = flushMs,
+            condense = condense,
+            displayMs = displayMs,
             open = open,
             beforeUpdate = beforeUpdate,
             afterUpdate = afterUpdate,
+            telemetry = { event, props -> appRpc.telemetry.add(TelemetryCaptureDto(event, props)) },
+            timers = timers,
         )
         controllers.add(m)
         roots[m] = root
@@ -220,30 +227,35 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
 
     // ------ EDT + coroutine helpers ------
 
-    /** Let coroutines settle without forcing buffered controller delivery. */
-    protected fun settle() = runBlocking {
-        repeat(5) {
-            delay(100)
-            edt { UIUtil.dispatchAllInvocationEvents() }
-        }
+    /** Drain background coroutine and EDT work without forcing buffered controller delivery. */
+    protected fun settle() {
+        drain(false)
     }
 
-    /** Let coroutines settle, force buffered controller delivery, then drain EDT. */
-    protected fun flush() = runBlocking {
-        repeat(5) {
-            delay(100)
-            edt {
-                controllers.forEach { it.flushEvents() }
-                UIUtil.dispatchAllInvocationEvents()
-            }
-        }
+    /** Drain background work, force buffered controller delivery, then drain EDT. */
+    protected fun flush() {
+        drain(true)
     }
 
     protected fun pause(ms: Long) = runBlocking {
-        val tick = 10L
-        repeat((ms / tick).coerceAtLeast(1).toInt()) {
-            delay(tick)
+        settleFast()
+        timers.advanceBy(ms)
+        settleFast()
+    }
+
+    private suspend fun settleFast() {
+        repeat(3) {
+            delay(1)
             edt { UIUtil.dispatchAllInvocationEvents() }
+        }
+    }
+
+    private fun drain(force: Boolean) {
+        coroutines.drain {
+            edt {
+                if (force) controllers.forEach { it.flushEvents() }
+                UIUtil.dispatchAllInvocationEvents()
+            }
         }
     }
 

@@ -101,16 +101,8 @@ export const dict = {
 
   "dialog.provider.search.placeholder": "Поиск провайдеров",
   "dialog.provider.empty": "Провайдеры не найдены",
-  "dialog.provider.group.popular": "Популярные",
   "dialog.provider.group.other": "Другие",
   "dialog.provider.tag.recommended": "Рекомендуемые",
-  "dialog.provider.opencode.note": "Отобранные модели, включая Claude, GPT, Gemini и другие",
-  "dialog.provider.anthropic.note": "Подключитесь с помощью Claude Pro/Max или API ключа",
-  "dialog.provider.openai.note": "Подключитесь с помощью ChatGPT Pro/Plus или API ключа",
-  "dialog.provider.google.note": "Модели Gemini для быстрых структурированных ответов",
-  "dialog.provider.openrouter.note": "Доступ ко всем поддерживаемым моделям через одного провайдера",
-  "dialog.provider.vercel.note": "Единый доступ к AI-моделям с интеллектуальной маршрутизацией",
-  "dialog.provider.copilot.note": "Подключитесь с помощью Copilot или API ключа",
 
   "dialog.model.select.title": "Выбрать модель",
   "dialog.model.search.placeholder": "Поиск моделей",
@@ -135,8 +127,14 @@ export const dict = {
   "provider.connect.status.failed": "Ошибка авторизации: {{error}}",
   "provider.connect.apiKey.description":
     "Введите ваш API ключ {{provider}} для подключения аккаунта и использования моделей {{provider}} в Kilo.",
+  "provider.connect.apiKey.description.local":
+    "Подключение к локальному серверу {{provider}}. Оставьте ключ пустым, если сервер его не требует (обычно для localhost).",
+  "provider.connect.atomicChat.description":
+    "Подключение к Atomic Chat на этом компьютере (по умолчанию http://127.0.0.1:1337). Для локального API ключ не нужен — запустите Atomic Chat, загрузите модель и нажмите Connect.",
   "provider.connect.apiKey.label": "{{provider}} API ключ",
+  "provider.connect.apiKey.label.optional": "{{provider}} API ключ (необязательно)",
   "provider.connect.apiKey.placeholder": "API ключ",
+  "provider.connect.apiKey.placeholder.optional": "Пусто для локального сервера",
   "provider.connect.apiKey.required": "API ключ обязателен",
   "provider.connect.prompt.required": "{{field}} обязательно",
   "provider.connect.azure.endpointType.label": "Выберите конфигурацию конечной точки Azure",
@@ -174,6 +172,7 @@ export const dict = {
   "provider.disconnect.toast.disconnected.title": "{{provider}} отключён",
   "provider.disconnect.toast.disconnected.description": "Модели {{provider}} больше недоступны.",
   "model.tag.free": "Бесплатно",
+  "model.tag.dataCollected": "Данные могут использоваться для обучения",
   "model.tag.latest": "Последняя",
   "model.group.recommended": "Рекомендуемые",
   "model.group.favorites": "Избранное",
@@ -201,6 +200,9 @@ export const dict = {
   "model.preview.label.cached": "В кэше",
   "model.preview.label.average": "Средняя стоимость",
   "model.preview.label.context": "Контекст",
+  "model.preview.group.terminalBench": "Terminal Bench 2.0",
+  "model.preview.label.completion": "Выполнение",
+  "model.preview.label.costAttempt": "Стоимость / попытка",
   "model.preview.value.notSupported": "Не поддерживается",
   "model.preview.tooltip.average":
     "Примерная средняя стоимость основана на типичном соотношении токенов ввода, вывода и чтения из кэша.",
@@ -283,6 +285,11 @@ export const dict = {
   "prompt.action.indexing": "Настройки индексации",
   "prompt.action.enhanceDescription":
     "Кнопка 'Улучшить запрос' помогает сделать ваш запрос лучше, предоставляя дополнительный контекст, уточнения или переформулировку. Попробуйте ввести запрос и снова нажать кнопку, чтобы увидеть, как это работает.",
+  "prompt.action.sandbox.enable": "Включить песочницу",
+  "prompt.action.sandbox.disable": "Отключить песочницу",
+  "prompt.action.sandbox.enabled": "Песочница включена. Команды оболочки агента ограничены каталогами проекта и Kilo.",
+  "prompt.action.sandbox.disabled":
+    "Песочница отключена. Нажмите, чтобы ограничить запись команд оболочки агента каталогами проекта и Kilo.",
 
   "speechToText.tooltip.start": "Начать голосовой ввод с Kilo Gateway",
   "speechToText.tooltip.stop": "Остановить захват звука",
@@ -451,6 +458,7 @@ export const dict = {
   "toast.session.unshare.failed.title": "Не удалось отменить публикацию",
   "toast.session.unshare.failed.description": "Произошла ошибка при отмене публикации",
 
+  "toast.session.rename.invalid.title": "Недопустимое название сессии",
   "toast.session.listFailed.title": "Не удалось загрузить сессии для {{project}}",
 
   "toast.update.title": "Доступно обновление",
@@ -517,6 +525,9 @@ export const dict = {
   "notification.permission.titleSubagent": "Требуется разрешение (субагент)",
   "notification.permission.description": "{{sessionTitle}} в {{projectName}} требуется разрешение",
   "ui.permission.manageAutoApprove": "Управление правилами автоодобрения",
+  "ui.permission.doomLoop.prompt":
+    "Обнаружен потенциальный цикл при работе инструмента {{tool}}. Продолжить выполнение?",
+  "ui.permission.doomLoop.rule": "Продолжать вызовы {{tool}}",
   "ui.permission.rule.addToAllowed": "Добавить в список разрешённых",
   "ui.permission.rule.removeFromAllowed": "Убрать из списка разрешённых",
   "ui.permission.rule.addToDenied": "Добавить в список запрещённых",
@@ -787,6 +798,9 @@ export const dict = {
   "settings.indexing.title": "Индексация",
   "settings.indexing.enable.title": "Включить индексацию",
   "settings.indexing.enable.description": "Включить или отключить семантическую индексацию кодовой базы.",
+  "settings.indexing.showButton.title": "Показывать кнопку, когда индексация отключена",
+  "settings.indexing.showButton.description":
+    "Показывать кнопку индексации под полем ввода, пока индексация отключена. Если кнопка скрыта, откройте «Настройки > Индексация», чтобы включить индексацию.",
   "settings.indexing.globalEnable.title": "Включить глобально",
   "settings.indexing.globalEnable.description": "Включить индексирование для каждого рабочего пространства.",
   "settings.indexing.projectEnable.title": "Включить для этого проекта",
@@ -856,16 +870,19 @@ export const dict = {
   "settings.providers.tag.customProvider": "Пользовательский провайдер",
   "settings.providers.connected.environmentDescription": "Подключён из ваших переменных окружения",
   "settings.providers.action.signInChatGPT": "Войти через ChatGPT",
-  "settings.providers.custom.description": "Добавьте OpenAI-совместимый провайдер по базовому URL.",
+  "settings.providers.custom.description": "Добавьте пользовательский провайдер по базовому URL.",
   "settings.providers.subagentModel.title": "Модель субагента",
   "settings.providers.subagentModel.description":
     "Модель по умолчанию и уровень рассуждения для субагентов task-tool. Оставьте пустым, чтобы унаследовать модель вызывающего агента.",
+  "settings.models.hidePromptTraining.title": "Скрывать модели, обучающиеся на запросах",
+  "settings.models.hidePromptTraining.description":
+    "Скрывать модели Kilo Gateway, поставщики которых могут использовать ваши запросы для обучения.",
   "settings.providers.modeModels": "Модель для режима",
-  "settings.providers.custom.note": "Добавьте OpenAI-совместимого провайдера по базовому URL.",
+  "settings.providers.custom.note": "Добавьте пользовательского провайдера по базовому URL.",
   "settings.providers.modeModels.description":
     "Переопределите модель по умолчанию для определённых режимов. Если не задано, используется глобальная модель по умолчанию.",
   "provider.custom.title": "Пользовательский провайдер",
-  "provider.custom.description.prefix": "Настройте провайдер, совместимый с OpenAI. См. ",
+  "provider.custom.description.prefix": "Настройте пользовательский провайдер. См. ",
   "provider.custom.description.link": "документацию по настройке провайдера",
   "provider.custom.description.suffix": ".",
   "provider.custom.field.providerID.label": "ID провайдера",
@@ -873,6 +890,7 @@ export const dict = {
   "provider.custom.field.providerID.description": "Строчные буквы, цифры, дефисы или подчёркивания",
   "provider.custom.field.name.label": "Отображаемое имя",
   "provider.custom.field.name.placeholder": "Мой AI-провайдер",
+  "provider.custom.field.package.label": "Provider API",
   "provider.custom.field.baseURL.label": "Базовый URL",
   "provider.custom.field.baseURL.placeholder": "https://api.myprovider.com/v1",
   "provider.custom.field.apiKey.label": "API-ключ",
@@ -899,6 +917,11 @@ export const dict = {
   "provider.custom.models.variants.thinking.placeholder": "thinking",
   "provider.custom.models.variants.thinking.enabled": "enabled",
   "provider.custom.models.variants.thinking.disabled": "disabled",
+  "provider.custom.models.variants.thinking.adaptive": "adaptive",
+  "provider.custom.models.variants.splitReasoning.label": "Split reasoning (required for e.g. MiniMax)",
+  "provider.custom.models.variants.splitReasoning.placeholder": "reasoning_split",
+  "provider.custom.models.variants.splitReasoning.true": "true",
+  "provider.custom.models.variants.splitReasoning.false": "false",
   "provider.custom.models.variants.chatTemplateArgs.label":
     "Включить размышление через аргументы шаблона чата (напр. Hugging Face)",
   "provider.custom.models.variants.chatTemplateArgs.placeholder": "chat_template_args",
@@ -912,6 +935,13 @@ export const dict = {
   "provider.custom.models.variants.reasoningEffort.medium": "medium",
   "provider.custom.models.variants.reasoningEffort.high": "high",
   "provider.custom.models.variants.reasoningEffort.xhigh": "xhigh",
+  "provider.custom.models.variants.outputEffort.label": "Output effort (e.g. Anthropic)",
+  "provider.custom.models.variants.outputEffort.placeholder": "effort",
+  "provider.custom.models.variants.outputEffort.low": "low",
+  "provider.custom.models.variants.outputEffort.medium": "medium",
+  "provider.custom.models.variants.outputEffort.high": "high",
+  "provider.custom.models.variants.outputEffort.xhigh": "xhigh",
+  "provider.custom.models.variants.outputEffort.max": "max",
   "provider.custom.models.remove": "Удалить модель",
   "provider.custom.models.add": "Добавить модель",
   "provider.custom.models.fetch": "Получить модели",
@@ -1025,6 +1055,8 @@ export const dict = {
   "session.delete.confirm": 'Удалить сессию "{{name}}"?',
   "session.delete.button": "Удалить сессию",
   "session.untitled": "Без названия",
+  "session.current": "Текущая сессия",
+  "session.history.sources": "Источник истории",
   "session.recent": "Недавние",
   "session.showHistory": "Показать историю",
   "session.search.placeholder": "Поиск сессий...",
@@ -1038,6 +1070,33 @@ export const dict = {
   "feedback.dialog.github": "Сообщить о проблеме на GitHub",
   "feedback.dialog.discord": "Присоединиться к нашему Discord",
   "feedback.dialog.support": "Служба поддержки",
+  "workStyle.onboarding.welcome": "Добро пожаловать в Kilo",
+  "workStyle.onboarding.title": "Выберите, как вы хотите работать",
+  "workStyle.onboarding.description":
+    "Задаёт начальные значения разрешений, блоков рассуждений, вывода терминала и временной шкалы контекста. Применяется только один раз и не затрагивает уже изменённые вами настройки.",
+  "workStyle.onboarding.skip": "Пока пропустить",
+  "workStyle.onboarding.settingsNote": "Эти параметры можно изменить в любое время в разделе",
+  "workStyle.onboarding.settings": "«Настройки».",
+  "workStyle.toast.saved.title": "Режим успешно сохранён",
+  "workStyle.toast.saved.description": "Изменить их можно в любое время в настройках.",
+  "workStyle.toast.saved.action": "Перейти в настройки",
+  "workStyle.choice.permissions": "Разрешения",
+  "workStyle.choice.bash": "Bash",
+  "workStyle.choice.visibility": "Видимость",
+  "workStyle.choice.human-in-the-loop.eyebrow": "Человек контролирует процесс",
+  "workStyle.choice.human-in-the-loop.title": "Сначала проверка",
+  "workStyle.choice.human-in-the-loop.description": "Kilo приостанавливается и показывает свой план по ходу работы.",
+  "workStyle.choice.human-in-the-loop.permissions":
+    "Запрашивает разрешение перед редактированием файлов или выполнением команд.",
+  "workStyle.choice.human-in-the-loop.bash": "Запрашивает разрешение на каждую команду терминала.",
+  "workStyle.choice.human-in-the-loop.visibility": "Показывает все детали разговора, включая ход рассуждений.",
+  "workStyle.choice.autonomous.eyebrow": "Меньше прерываний",
+  "workStyle.choice.autonomous.title": "Высокая автономность",
+  "workStyle.choice.autonomous.description": "Меньше прерываний, упрощённый интерфейс.",
+  "workStyle.choice.autonomous.permissions":
+    "Редактирует файлы и выполняет команды в рабочем пространстве без разрешения.",
+  "workStyle.choice.autonomous.bash": "Может выполнять команды терминала в рабочем пространстве без подтверждения.",
+  "workStyle.choice.autonomous.visibility": "Детали остаются свёрнутыми, пока вы их не развернёте.",
   "session.cloud.import.title": "Импорт из облака",
   "session.cloud.import.placeholder": "ID сессии, URL или команда kilo import",
   "session.cloud.import.button": "Импортировать",
@@ -1129,6 +1188,14 @@ export const dict = {
   "session.status.retrying": "Повторная попытка ({{ attempt }})… {{ message }}",
   "session.status.working": "Работаю…",
   "session.status.offline": "Сеть отключена — переподключение...",
+  "session.outcome.incomplete": "Раунд завершен, осталось задач: {{count}}",
+  "session.outcome.limit": "Достигнут лимит ответов до завершения",
+  "session.outcome.unknown": "Раунд завершен без указания причины моделью",
+  "session.outcome.filtered": "Провайдер остановил этот ответ из-за фильтра контента.",
+  "session.outcome.unexpected": "Ответ неожиданно завершился и может быть неполным.",
+  "session.outcome.interrupted": "Раунд прерван",
+  "session.outcome.error": "Раунд завершился с ошибкой",
+  "session.outcome.finish": "Причина завершения: {{reason}}",
 
   "ui.sessionTurn.cancel": "Отмена",
   "ui.sessionTurn.status.thinking": "Думаю...",
@@ -1191,7 +1258,6 @@ export const dict = {
     'Телеметрия управляется встроенной настройкой телеметрии VS Code. Чтобы отключить её, перейдите в Настройки > Телеметрия > Уровень телеметрии и установите значение "off". Перезапустите VS Code, чтобы применить изменение.',
   "settings.aboutKiloCode.telemetry.openSettings": "Открыть настройки телеметрии",
 
-  "settings.agentBehaviour.subtab.modes": "Режимы",
   "settings.agentBehaviour.subtab.agents": "Агенты",
   "settings.agentBehaviour.subtab.mcpServers": "MCP-серверы",
   "settings.agentBehaviour.subtab.rules": "Правила",
@@ -1229,6 +1295,10 @@ export const dict = {
   "settings.notifications.errors.title": "Ошибки",
   "settings.notifications.errors.description": "Показать уведомление при ошибках",
   "settings.notifications.sounds": "Звуки",
+  "settings.notifications.enable.title": "Включить звуковые уведомления",
+  "settings.notifications.enable.description":
+    "Воспроизводить звуки при завершении сеансов, возникновении ошибки или необходимости вашего участия",
+  "settings.notifications.testSound": "Тест",
   "settings.notifications.agentSound.title": "Звук завершения агента",
   "settings.notifications.agentSound.description": "Звук при завершении агента",
   "settings.notifications.permSound.title": "Звук запроса разрешений",
@@ -1236,6 +1306,9 @@ export const dict = {
   "settings.notifications.errorSound.title": "Звук ошибки",
   "settings.notifications.errorSound.description": "Звук при ошибках",
   "settings.notifications.sound.default": "По умолчанию",
+  "settings.notifications.sound.system": "Системный",
+  "settings.notifications.sound.description":
+    "По умолчанию для завершения, запроса вашего участия и ошибок используются разные звуки. В остальных вариантах для всех событий используется один и тот же звук.",
   "settings.notifications.sound.none": "Нет",
   "settings.experimental.share.title": "Режим обмена",
   "settings.experimental.share.description": "Поведение обмена сессиями",
@@ -1246,25 +1319,23 @@ export const dict = {
   "settings.experimental.formatter.description": "Включить автоматическое форматирование кода",
   "settings.experimental.lsp.title": "LSP",
   "settings.experimental.lsp.description": "Включить интеграцию протокола языкового сервера",
-  "settings.experimental.pasteSummary.title": "Отключить сводку вставки",
-  "settings.experimental.pasteSummary.description": "Не суммировать большой вставленный контент",
   "settings.experimental.batch.title": "Пакетный инструмент",
   "settings.experimental.batch.description": "Включить пакетную обработку вызовов инструментов",
-  "settings.experimental.semanticIndexing.title": "Semantic Indexing",
-  "settings.experimental.semanticIndexing.description":
-    "Enable semantic codebase indexing and the semantic_search tool. Requires indexing configuration.",
   "settings.experimental.codebaseSearch.title": "Поиск по коду",
   "settings.experimental.codebaseSearch.description": "Включить поиск на естественном языке с ИИ по всей кодовой базе",
   "settings.experimental.speechToText.title": "Речь в текст",
   "settings.experimental.speechToText.description":
     "Включите голосовой ввод в полях запросов, используя вашу учетную запись Kilo через Kilo Gateway.",
-  "settings.experimental.speechToText.disabledDescription":
+  "settings.models.speechToText.disabledDescription":
     "Включите провайдер Kilo и выполните вход, чтобы использовать Speech to Text. В настоящее время Speech to Text поддерживается только с Kilo Gateway.",
-  "settings.experimental.speechToTextModel.title": "Модель речи в текст",
-  "settings.experimental.speechToTextModel.description":
-    "Выберите модель транскрипции Kilo Gateway для голосового ввода.",
+  "settings.models.speechToTextModel.title": "Модель речи в текст",
+  "settings.models.speechToTextModel.description": "Выберите модель транскрипции Kilo Gateway для голосового ввода.",
   "settings.experimental.continueOnDeny.title": "Продолжить при отказе",
   "settings.experimental.continueOnDeny.description": "Продолжить цикл агента при отказе в разрешении",
+  "settings.sandboxing.title": "Изоляция в песочнице",
+  "settings.sandboxing.network.title": "Ограничить доступ к сети",
+  "settings.sandboxing.network.description":
+    "Блокировать исходящий доступ к сети для команд, инициированных моделью, и HTTP-инструментов. Локальные серверы MCP и хуки плагинов не подпадают под это ограничение. Трафик к провайдерам и моделям для инференса остаётся доступным.",
   "settings.experimental.mcpTimeout.title": "Таймаут MCP (мс)",
   "settings.experimental.mcpTimeout.description": "Таймаут запросов MCP-сервера в миллисекундах",
   "settings.experimental.remote.title": "Управление Remote",
@@ -1305,7 +1376,7 @@ export const dict = {
   "settings.agentBehaviour.noSkillsFound":
     "Навыки не обнаружены. Добавьте пути к папкам навыков или URL-адреса ниже, чтобы сделать навыки доступными.",
   "settings.agentBehaviour.availableModes": "Доступные пользовательские режимы",
-  "settings.agentBehaviour.noModesFound": "Режимы не найдены.",
+  "settings.agentBehaviour.noAgentsFound": "Агенты не найдены.",
   "settings.agentBehaviour.createMode": "Создать новый режим",
   "settings.agentBehaviour.createMode.name": "Название",
   "settings.agentBehaviour.createMode.name.placeholder": "например, reviewer",
@@ -1351,10 +1422,9 @@ export const dict = {
   "settings.agentBehaviour.permissions.copy": "Скопировать разрешения как JSON",
   "settings.agentBehaviour.permissions.hint":
     "Правила оцениваются по порядку — побеждает последнее совпавшее правило. Это разрешенный набор правил из бэкенда CLI.",
-  "settings.agentBehaviour.removeMode.title": "Удалить режим",
-  "settings.agentBehaviour.removeMode.confirm":
-    'Удалить режим "{{name}}"? Это отключит режим, обновив вашу конфигурацию.',
-  "settings.agentBehaviour.removeMode.button": "Удалить",
+  "settings.agentBehaviour.removeAgent.title": "Удалить агент",
+  "settings.agentBehaviour.removeAgent.confirm": 'Удалить агент "{{name}}"? Это отключит агент, обновив конфигурацию.',
+  "settings.agentBehaviour.removeAgent.button": "Удалить",
   "settings.agentBehaviour.removeMcp.title": "Удалить сервер MCP",
   "settings.agentBehaviour.removeMcp.confirm": 'Удалить сервер MCP "{{name}}"? Это удалит его из вашей конфигурации.',
   "settings.agentBehaviour.removeMcp.button": "Удалить",
@@ -1398,6 +1468,9 @@ export const dict = {
     "Пользовательские команды не настроены. Добавьте команды в opencode.json, чтобы увидеть их здесь.",
   "settings.agentBehaviour.workflows.detail.description": "Описание",
   "settings.agentBehaviour.workflows.detail.template": "Шаблон",
+  "settings.experimental.sandbox.title": "Песочница",
+  "settings.experimental.sandbox.description":
+    "Выполнять команды оболочки агента в песочнице на уровне ОС, которая ограничивает запись в каталоги состояния проекта и Kilo",
 
   "settings.autoApprove.description":
     "Определите правила запуска инструментов. Большинство инструментов по умолчанию Разрешены. Для doom_loop и external_directory по умолчанию установлено Спрашивать.",
@@ -1430,8 +1503,8 @@ export const dict = {
   "settings.autoApprove.tool.todoreadwrite":
     "Управление списком задач. Разрешает чтение и обновление внутреннего списка задач.",
   "settings.autoApprove.tool.webfetch": "Получение URL. Разрешает извлечение содержимого по указанному URL-адресу.",
-  "settings.autoApprove.tool.websearchcodesearch":
-    "Поиск в интернете или коде. Разрешает выполнение внешних поисковых запросов в интернете или коде.",
+  "settings.autoApprove.tool.websearch":
+    "Поиск в интернете. Разрешает выполнение внешних поисковых запросов в интернете.",
   "settings.autoApprove.tool.external_directory":
     "Доступ к файлам вне рабочей области. Срабатывает при доступе к файлам за пределами текущего каталога проекта.",
   "settings.autoApprove.tool.doom_loop":
@@ -1460,10 +1533,6 @@ export const dict = {
 
   "settings.display.username.title": "Имя пользователя",
   "settings.display.username.description": "Пользовательское имя в разговорах",
-  "settings.display.layout.title": "Макет",
-  "settings.display.layout.description": "Режим макета для интерфейса чата",
-  "settings.display.layout.auto": "Авто",
-  "settings.display.layout.stretch": "Растянуть",
   "settings.display.fontSize.title": "Размер шрифта",
   "settings.display.fontSize.description": "Настройте размер шрифта webview UI для Kilo независимо от VS Code.",
   "settings.display.reasoningAutoCollapse.title": "Автоматически сворачивать рассуждение",
@@ -1473,6 +1542,11 @@ export const dict = {
   "settings.display.terminalCommand.description": "Choose whether terminal command blocks start expanded or collapsed.",
   "settings.display.terminalCommand.expanded": "Expanded",
   "settings.display.terminalCommand.collapsed": "Collapsed",
+  "settings.display.codeEdit.title": "Блоки изменений кода",
+  "settings.display.codeEdit.description":
+    "Выберите, будут ли блоки изменений кода и различий изначально развёрнуты или свёрнуты.",
+  "settings.display.codeEdit.expanded": "Развёрнуты",
+  "settings.display.codeEdit.collapsed": "Свёрнуты",
   "settings.providers.defaultModel.title": "Модель по умолчанию",
   "settings.providers.defaultModel.description": "Основная модель для разговоров",
   "settings.providers.smallModel.title": "Малая модель",
@@ -1497,6 +1571,8 @@ export const dict = {
   "settings.aboutKiloCode.legacyMigration.title": "Миграция с устаревшей версии",
   "settings.aboutKiloCode.legacyMigration.description":
     "Перенос настроек из предыдущей установки Kilo Code, включая API-ключи провайдеров и модель по умолчанию.",
+  "settings.aboutKiloCode.rooImport.description": "Импорт истории переписки из установки Roo Code.",
+  "settings.aboutKiloCode.rooImport.button": "Импортировать сеансы из Roo Code",
 
   // Screen 1 — What's New
   "migration.whatsNew.title": "Что нового в Kilo Code",

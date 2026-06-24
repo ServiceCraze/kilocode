@@ -3,10 +3,16 @@
 import { client } from "./client.gen.js"
 import { buildClientParams, type Client, type Options as Options2, type TDataShape } from "./client/index.js"
 import type {
+  AgentBuilderPreviewErrors,
+  AgentBuilderPreviewResponses,
+  AgentBuilderSaveErrors,
+  AgentBuilderSaveResponses,
   AgentPartInput,
+  AppAgentsErrors,
   AppAgentsResponses,
   AppLogErrors,
   AppLogResponses,
+  AppSkillsErrors,
   AppSkillsResponses,
   Auth as Auth3,
   AuthRemoveErrors,
@@ -15,6 +21,7 @@ import type {
   AuthSetResponses,
   BackgroundProcessGetErrors,
   BackgroundProcessGetResponses,
+  BackgroundProcessListErrors,
   BackgroundProcessListResponses,
   BackgroundProcessLogsErrors,
   BackgroundProcessLogsResponses,
@@ -22,15 +29,36 @@ import type {
   BackgroundProcessRestartResponses,
   BackgroundProcessStopErrors,
   BackgroundProcessStopResponses,
+  BackgroundProcessStopSessionErrors,
   BackgroundProcessStopSessionResponses,
+  CommandListErrors,
   CommandListResponses,
   CommitMessageGenerateErrors,
   CommitMessageGenerateResponses,
-  Config as Config3,
+  Config as Config4,
+  ConfigEffectiveErrors,
+  ConfigEffectiveResponses,
+  ConfigGetErrors,
   ConfigGetResponses,
+  ConfigModelStateErrors,
+  ConfigModelStateResponses,
+  ConfigModelStateUpdateErrors,
+  ConfigModelStateUpdateResponses,
+  ConfigOverlayErrors,
+  ConfigOverlayResponses,
+  ConfigOverlayUpdateErrors,
+  ConfigOverlayUpdateResponses,
+  ConfigProvidersErrors,
   ConfigProvidersResponses,
+  ConfigRulesErrors,
+  ConfigRulesResponses,
+  ConfigRulesUpdateErrors,
+  ConfigRulesUpdateResponses,
+  ConfigSourcesErrors,
+  ConfigSourcesResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
+  ConfigWarningsErrors,
   ConfigWarningsResponses,
   EnhancePromptEnhanceErrors,
   EnhancePromptEnhanceResponses,
@@ -39,41 +67,70 @@ import type {
   EventTuiPromptAppend2,
   EventTuiSessionSelect2,
   EventTuiToastShow2,
+  ExperimentalConsoleGetErrors,
   ExperimentalConsoleGetResponses,
+  ExperimentalConsoleListOrgsErrors,
   ExperimentalConsoleListOrgsResponses,
   ExperimentalConsoleSwitchOrgResponses,
+  ExperimentalResourceListErrors,
   ExperimentalResourceListResponses,
+  ExperimentalSessionListErrors,
   ExperimentalSessionListResponses,
+  ExperimentalWorkspaceAdapterListErrors,
   ExperimentalWorkspaceAdapterListResponses,
   ExperimentalWorkspaceCreateErrors,
   ExperimentalWorkspaceCreateResponses,
+  ExperimentalWorkspaceListErrors,
   ExperimentalWorkspaceListResponses,
   ExperimentalWorkspaceRemoveErrors,
   ExperimentalWorkspaceRemoveResponses,
+  ExperimentalWorkspaceStatusErrors,
   ExperimentalWorkspaceStatusResponses,
+  ExperimentalWorkspaceSyncListErrors,
+  ExperimentalWorkspaceSyncListResponses,
   ExperimentalWorkspaceWarpErrors,
   ExperimentalWorkspaceWarpResponses,
+  FileListErrors,
   FileListResponses,
   FilePartInput,
   FilePartSource,
+  FileReadErrors,
   FileReadResponses,
+  FileStatusErrors,
   FileStatusResponses,
+  FindFilesErrors,
   FindFilesResponses,
+  FindSymbolsErrors,
   FindSymbolsResponses,
+  FindTextErrors,
   FindTextResponses,
+  FormatterStatusErrors,
   FormatterStatusResponses,
+  GlobalConfigGetErrors,
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
   GlobalConfigUpdateResponses,
+  GlobalDisposeErrors,
   GlobalDisposeResponses,
+  GlobalEventErrors,
   GlobalEventResponses,
+  GlobalHealthErrors,
   GlobalHealthResponses,
   GlobalUpgradeErrors,
   GlobalUpgradeResponses,
+  IndexingModelsErrors,
+  IndexingModelsResponses,
+  IndexingStatusErrors,
   IndexingStatusResponses,
+  IndexingWarningsErrors,
+  IndexingWarningsResponses,
+  InstanceDisposeErrors,
   InstanceDisposeResponses,
   KiloAudioTranscriptionsErrors,
   KiloAudioTranscriptionsResponses,
+  KiloAuthStatusErrors,
+  KiloAuthStatusResponses,
+  KiloClawChatCredentialsErrors,
   KiloClawChatCredentialsResponses,
   KiloClawStatusErrors,
   KiloClawStatusResponses,
@@ -101,6 +158,7 @@ import type {
   KiloEditResponses,
   KiloFimErrors,
   KiloFimResponses,
+  KiloModesErrors,
   KiloModesResponses,
   KiloNotificationsErrors,
   KiloNotificationsResponses,
@@ -108,6 +166,7 @@ import type {
   KiloOrganizationSetResponses,
   KiloProfileErrors,
   KiloProfileResponses,
+  LspStatusErrors,
   LspStatusResponses,
   McpAddErrors,
   McpAddResponses,
@@ -119,11 +178,15 @@ import type {
   McpAuthRemoveResponses,
   McpAuthStartErrors,
   McpAuthStartResponses,
+  McpConnectErrors,
   McpConnectResponses,
+  McpDisconnectErrors,
   McpDisconnectResponses,
   McpLocalConfig,
   McpRemoteConfig,
+  McpStatusErrors,
   McpStatusResponses,
+  NetworkListErrors,
   NetworkListResponses,
   NetworkRejectErrors,
   NetworkRejectResponses,
@@ -135,9 +198,11 @@ import type {
   PartDeleteResponses,
   PartUpdateErrors,
   PartUpdateResponses,
+  PathGetErrors,
   PathGetResponses,
   PermissionAllowEverythingErrors,
   PermissionAllowEverythingResponses,
+  PermissionListErrors,
   PermissionListResponses,
   PermissionReplyErrors,
   PermissionReplyResponses,
@@ -146,13 +211,18 @@ import type {
   PermissionRuleset,
   PermissionSaveAlwaysRulesErrors,
   PermissionSaveAlwaysRulesResponses,
+  ProjectCurrentErrors,
   ProjectCurrentResponses,
+  ProjectInitGitErrors,
   ProjectInitGitResponses,
+  ProjectListErrors,
   ProjectListResponses,
   ProjectUpdateErrors,
   ProjectUpdateResponses,
   Prompt,
+  ProviderAuthErrors,
   ProviderAuthResponses,
+  ProviderListErrors,
   ProviderListResponses,
   ProviderOauthAuthorizeErrors,
   ProviderOauthAuthorizeResponses,
@@ -166,20 +236,26 @@ import type {
   PtyCreateResponses,
   PtyGetErrors,
   PtyGetResponses,
+  PtyListErrors,
   PtyListResponses,
   PtyRemoveErrors,
   PtyRemoveResponses,
+  PtyShellsErrors,
   PtyShellsResponses,
   PtyUpdateErrors,
   PtyUpdateResponses,
   QuestionAnswer,
+  QuestionListErrors,
   QuestionListResponses,
   QuestionRejectErrors,
   QuestionRejectResponses,
   QuestionReplyErrors,
   QuestionReplyResponses,
+  RemoteDisableErrors,
   RemoteDisableResponses,
+  RemoteEnableErrors,
   RemoteEnableResponses,
+  RemoteStatusErrors,
   RemoteStatusResponses,
   SessionAbortErrors,
   SessionAbortResponses,
@@ -194,6 +270,7 @@ import type {
   SessionDeleteMessageResponses,
   SessionDeleteResponses,
   SessionDelivery,
+  SessionDiffErrors,
   SessionDiffResponses,
   SessionForkErrors,
   SessionForkResponses,
@@ -201,6 +278,7 @@ import type {
   SessionGetResponses,
   SessionInitErrors,
   SessionInitResponses,
+  SessionListErrors,
   SessionListResponses,
   SessionMessageErrors,
   SessionMessageResponses,
@@ -228,17 +306,20 @@ import type {
   SessionUnshareResponses,
   SessionUpdateErrors,
   SessionUpdateResponses,
+  SessionViewedErrors,
   SessionViewedResponses,
   SubtaskPartInput,
   SuggestionAcceptErrors,
   SuggestionAcceptResponses,
   SuggestionDismissErrors,
   SuggestionDismissResponses,
+  SuggestionListErrors,
   SuggestionListResponses,
   SyncHistoryListErrors,
   SyncHistoryListResponses,
   SyncReplayErrors,
   SyncReplayResponses,
+  SyncStartErrors,
   SyncStartResponses,
   SyncStealErrors,
   SyncStealResponses,
@@ -253,34 +334,63 @@ import type {
   ToolListResponses,
   TuiAppendPromptErrors,
   TuiAppendPromptResponses,
+  TuiClearPromptErrors,
   TuiClearPromptResponses,
+  TuiConfigGetErrors,
+  TuiConfigGetResponses,
+  TuiConfigUpdateErrors,
+  TuiConfigUpdateResponses,
+  TuiControlNextErrors,
   TuiControlNextResponses,
+  TuiControlResponseErrors,
   TuiControlResponseResponses,
   TuiExecuteCommandErrors,
   TuiExecuteCommandResponses,
+  TuiKeybindListErrors,
+  TuiKeybindListResponses,
+  TuiOpenHelpErrors,
   TuiOpenHelpResponses,
+  TuiOpenModelsErrors,
   TuiOpenModelsResponses,
+  TuiOpenSessionsErrors,
   TuiOpenSessionsResponses,
+  TuiOpenThemesErrors,
   TuiOpenThemesResponses,
   TuiPublishErrors,
   TuiPublishResponses,
   TuiSelectSessionErrors,
   TuiSelectSessionResponses,
+  TuiShowToastErrors,
   TuiShowToastResponses,
+  TuiSubmitPromptErrors,
   TuiSubmitPromptResponses,
+  V2ModelListErrors,
+  V2ModelListResponses,
+  V2ProviderGetErrors,
+  V2ProviderGetResponses,
+  V2ProviderListErrors,
+  V2ProviderListResponses,
+  V2SessionCompactErrors,
   V2SessionCompactResponses,
+  V2SessionContextErrors,
   V2SessionContextResponses,
   V2SessionListErrors,
   V2SessionListResponses,
   V2SessionMessagesErrors,
   V2SessionMessagesResponses,
+  V2SessionPromptErrors,
   V2SessionPromptResponses,
+  V2SessionWaitErrors,
   V2SessionWaitResponses,
   VcsApplyErrors,
   VcsApplyResponses,
+  VcsDiffErrors,
+  VcsDiffRawErrors,
   VcsDiffRawResponses,
   VcsDiffResponses,
+  VcsGetErrors,
   VcsGetResponses,
+  VcsStatusErrors,
   VcsStatusResponses,
   WorktreeCreateErrors,
   WorktreeCreateInput,
@@ -291,6 +401,7 @@ import type {
   WorktreeDiffResponses,
   WorktreeDiffSummaryErrors,
   WorktreeDiffSummaryResponses,
+  WorktreeListErrors,
   WorktreeListResponses,
   WorktreeRemoveErrors,
   WorktreeRemoveInput,
@@ -468,7 +579,7 @@ export class App extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<AppAgentsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<AppAgentsResponses, AppAgentsErrors, ThrowOnError>({
       url: "/agent",
       ...options,
       ...params,
@@ -498,7 +609,7 @@ export class App extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<AppSkillsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<AppSkillsResponses, AppSkillsErrors, ThrowOnError>({
       url: "/skill",
       ...options,
       ...params,
@@ -513,7 +624,7 @@ export class Config extends HeyApiClient {
    * Retrieve the current global Kilo configuration settings and preferences.
    */
   public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).get<GlobalConfigGetResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<GlobalConfigGetResponses, GlobalConfigGetErrors, ThrowOnError>({
       url: "/global/config",
       ...options,
     })
@@ -526,7 +637,7 @@ export class Config extends HeyApiClient {
    */
   public update<ThrowOnError extends boolean = false>(
     parameters?: {
-      config?: Config3
+      config?: Config4
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -551,7 +662,7 @@ export class Global extends HeyApiClient {
    * Get health information about the Kilo server.
    */
   public health<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).get<GlobalHealthResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<GlobalHealthResponses, GlobalHealthErrors, ThrowOnError>({
       url: "/global/health",
       ...options,
     })
@@ -563,7 +674,7 @@ export class Global extends HeyApiClient {
    * Subscribe to global events from the Kilo system using server-sent events.
    */
   public event<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).sse.get<GlobalEventResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).sse.get<GlobalEventResponses, GlobalEventErrors, ThrowOnError>({
       url: "/global/event",
       ...options,
     })
@@ -575,7 +686,7 @@ export class Global extends HeyApiClient {
    * Clean up and dispose all Kilo instances, releasing all resources.
    */
   public dispose<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).post<GlobalDisposeResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<GlobalDisposeResponses, GlobalDisposeErrors, ThrowOnError>({
       url: "/global/dispose",
       ...options,
     })
@@ -667,7 +778,7 @@ export class Config2 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ConfigGetResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ConfigGetResponses, ConfigGetErrors, ThrowOnError>({
       url: "/config",
       ...options,
       ...params,
@@ -683,7 +794,7 @@ export class Config2 extends HeyApiClient {
     parameters?: {
       directory?: string
       workspace?: string
-      config?: Config3
+      config?: Config4
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -734,7 +845,7 @@ export class Config2 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ConfigWarningsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ConfigWarningsResponses, ConfigWarningsErrors, ThrowOnError>({
       url: "/config/warnings",
       ...options,
       ...params,
@@ -764,10 +875,294 @@ export class Config2 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ConfigProvidersResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ConfigProvidersResponses, ConfigProvidersErrors, ThrowOnError>({
       url: "/config/providers",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Get config overlay
+   *
+   * Resolve global, project, and effective config values with source metadata for inheritance-aware settings UI.
+   */
+  public overlay<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      scope?: "global" | "project"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "scope" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ConfigOverlayResponses, ConfigOverlayErrors, ThrowOnError>({
+      url: "/config/overlay",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Patch config overlay
+   *
+   * Apply a minimal global or project config patch, including unset paths for reverting local overrides.
+   */
+  public overlayUpdate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      scope?: "global" | "project"
+      set?: {
+        [key: string]: unknown
+      }
+      unset?: Array<Array<string>>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "scope" },
+            { in: "body", key: "set" },
+            { in: "body", key: "unset" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<
+      ConfigOverlayUpdateResponses,
+      ConfigOverlayUpdateErrors,
+      ThrowOnError
+    >({
+      url: "/config/overlay",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List config sources
+   *
+   * List config source metadata in load order without exposing config contents or secrets.
+   */
+  public sources<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ConfigSourcesResponses, ConfigSourcesErrors, ThrowOnError>({
+      url: "/config/sources",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get effective configuration
+   *
+   * Retrieve effective config for the current instance directory.
+   */
+  public effective<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ConfigEffectiveResponses, ConfigEffectiveErrors, ThrowOnError>({
+      url: "/config/effective",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get project rules
+   *
+   * List project instruction files used by Kilo and return their current contents.
+   */
+  public rules<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      scope?: "project"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "scope" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ConfigRulesResponses, ConfigRulesErrors, ThrowOnError>({
+      url: "/config/rules",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update project rules
+   *
+   * Create or update the project AGENTS.md rules file.
+   */
+  public rulesUpdate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      scope?: "project"
+      content?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "scope" },
+            { in: "body", key: "content" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<ConfigRulesUpdateResponses, ConfigRulesUpdateErrors, ThrowOnError>({
+      url: "/config/rules",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get model state
+   *
+   * Retrieve TUI-compatible recent and favorite model selections.
+   */
+  public modelState<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ConfigModelStateResponses, ConfigModelStateErrors, ThrowOnError>({
+      url: "/config/model-state",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update model state
+   *
+   * Patch TUI-compatible model selections shared with Kilo Console.
+   */
+  public modelStateUpdate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      favorite?: Array<{
+        providerID: string
+        modelID: string
+      }>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "favorite" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<
+      ConfigModelStateUpdateResponses,
+      ConfigModelStateUpdateErrors,
+      ThrowOnError
+    >({
+      url: "/config/model-state",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -796,7 +1191,11 @@ export class Console extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalConsoleGetResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalConsoleGetResponses,
+      ExperimentalConsoleGetErrors,
+      ThrowOnError
+    >({
       url: "/experimental/console",
       ...options,
       ...params,
@@ -826,7 +1225,11 @@ export class Console extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalConsoleListOrgsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalConsoleListOrgsResponses,
+      ExperimentalConsoleListOrgsErrors,
+      ThrowOnError
+    >({
       url: "/experimental/console/orgs",
       ...options,
       ...params,
@@ -885,6 +1288,7 @@ export class Session extends HeyApiClient {
       workspace?: string
       projectID?: string
       worktrees?: boolean
+      current?: "true" | "false"
       roots?: boolean | "true" | "false"
       start?: number
       cursor?: number
@@ -903,6 +1307,7 @@ export class Session extends HeyApiClient {
             { in: "query", key: "workspace" },
             { in: "query", key: "projectID" },
             { in: "query", key: "worktrees" },
+            { in: "query", key: "current" },
             { in: "query", key: "roots" },
             { in: "query", key: "start" },
             { in: "query", key: "cursor" },
@@ -913,7 +1318,11 @@ export class Session extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalSessionListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalSessionListResponses,
+      ExperimentalSessionListErrors,
+      ThrowOnError
+    >({
       url: "/experimental/session",
       ...options,
       ...params,
@@ -945,7 +1354,11 @@ export class Resource extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalResourceListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalResourceListResponses,
+      ExperimentalResourceListErrors,
+      ThrowOnError
+    >({
       url: "/experimental/resource",
       ...options,
       ...params,
@@ -977,7 +1390,11 @@ export class Adapter extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalWorkspaceAdapterListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalWorkspaceAdapterListResponses,
+      ExperimentalWorkspaceAdapterListErrors,
+      ThrowOnError
+    >({
       url: "/experimental/workspace/adapter",
       ...options,
       ...params,
@@ -1009,7 +1426,11 @@ export class Workspace extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalWorkspaceListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalWorkspaceListResponses,
+      ExperimentalWorkspaceListErrors,
+      ThrowOnError
+    >({
       url: "/experimental/workspace",
       ...options,
       ...params,
@@ -1064,6 +1485,40 @@ export class Workspace extends HeyApiClient {
   }
 
   /**
+   * Sync workspace list
+   *
+   * Register missing workspaces returned by workspace adapters.
+   */
+  public syncList<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalWorkspaceSyncListResponses,
+      ExperimentalWorkspaceSyncListErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/workspace/sync-list",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Workspace status
    *
    * Get connection status for workspaces in the current project.
@@ -1086,7 +1541,11 @@ export class Workspace extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ExperimentalWorkspaceStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      ExperimentalWorkspaceStatusResponses,
+      ExperimentalWorkspaceStatusErrors,
+      ThrowOnError
+    >({
       url: "/experimental/workspace/status",
       ...options,
       ...params,
@@ -1309,7 +1768,7 @@ export class Worktree extends HeyApiClient {
   /**
    * List worktrees
    *
-   * List all sandbox worktrees for the current project.
+   * List all git worktrees for the current project and whether Kilo manages them.
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -1329,7 +1788,7 @@ export class Worktree extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<WorktreeListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<WorktreeListResponses, WorktreeListErrors, ThrowOnError>({
       url: "/experimental/worktree",
       ...options,
       ...params,
@@ -1535,7 +1994,7 @@ export class Find extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FindTextResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FindTextResponses, FindTextErrors, ThrowOnError>({
       url: "/find",
       ...options,
       ...params,
@@ -1573,7 +2032,7 @@ export class Find extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FindFilesResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FindFilesResponses, FindFilesErrors, ThrowOnError>({
       url: "/find/file",
       ...options,
       ...params,
@@ -1605,7 +2064,7 @@ export class Find extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FindSymbolsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FindSymbolsResponses, FindSymbolsErrors, ThrowOnError>({
       url: "/find/symbol",
       ...options,
       ...params,
@@ -1639,7 +2098,7 @@ export class File extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FileListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FileListResponses, FileListErrors, ThrowOnError>({
       url: "/file",
       ...options,
       ...params,
@@ -1671,7 +2130,7 @@ export class File extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FileReadResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FileReadResponses, FileReadErrors, ThrowOnError>({
       url: "/file/content",
       ...options,
       ...params,
@@ -1701,7 +2160,7 @@ export class File extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FileStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FileStatusResponses, FileStatusErrors, ThrowOnError>({
       url: "/file/status",
       ...options,
       ...params,
@@ -1733,7 +2192,7 @@ export class Instance extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<InstanceDisposeResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<InstanceDisposeResponses, InstanceDisposeErrors, ThrowOnError>({
       url: "/instance/dispose",
       ...options,
       ...params,
@@ -1765,7 +2224,7 @@ export class Path extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<PathGetResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<PathGetResponses, PathGetErrors, ThrowOnError>({
       url: "/path",
       ...options,
       ...params,
@@ -1797,7 +2256,7 @@ export class Diff extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<VcsDiffRawResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<VcsDiffRawResponses, VcsDiffRawErrors, ThrowOnError>({
       url: "/vcs/diff/raw",
       ...options,
       ...params,
@@ -1829,7 +2288,7 @@ export class Vcs extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<VcsGetResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<VcsGetResponses, VcsGetErrors, ThrowOnError>({
       url: "/vcs",
       ...options,
       ...params,
@@ -1859,7 +2318,7 @@ export class Vcs extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<VcsStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<VcsStatusResponses, VcsStatusErrors, ThrowOnError>({
       url: "/vcs/status",
       ...options,
       ...params,
@@ -1876,6 +2335,7 @@ export class Vcs extends HeyApiClient {
       directory?: string
       workspace?: string
       mode: "git" | "branch"
+      context?: number
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1887,11 +2347,12 @@ export class Vcs extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "query", key: "mode" },
+            { in: "query", key: "context" },
           ],
         },
       ],
     )
-    return (options?.client ?? this.client).get<VcsDiffResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<VcsDiffResponses, VcsDiffErrors, ThrowOnError>({
       url: "/vcs/diff",
       ...options,
       ...params,
@@ -1965,7 +2426,7 @@ export class Command extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<CommandListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<CommandListResponses, CommandListErrors, ThrowOnError>({
       url: "/command",
       ...options,
       ...params,
@@ -1997,7 +2458,7 @@ export class Lsp extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<LspStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<LspStatusResponses, LspStatusErrors, ThrowOnError>({
       url: "/lsp",
       ...options,
       ...params,
@@ -2029,7 +2490,7 @@ export class Formatter extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<FormatterStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<FormatterStatusResponses, FormatterStatusErrors, ThrowOnError>({
       url: "/formatter",
       ...options,
       ...params,
@@ -2200,7 +2661,7 @@ export class Mcp extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<McpStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<McpStatusResponses, McpStatusErrors, ThrowOnError>({
       url: "/mcp",
       ...options,
       ...params,
@@ -2269,7 +2730,7 @@ export class Mcp extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<McpConnectResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<McpConnectResponses, McpConnectErrors, ThrowOnError>({
       url: "/mcp/{name}/connect",
       ...options,
       ...params,
@@ -2299,7 +2760,7 @@ export class Mcp extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<McpDisconnectResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<McpDisconnectResponses, McpDisconnectErrors, ThrowOnError>({
       url: "/mcp/{name}/disconnect",
       ...options,
       ...params,
@@ -2336,7 +2797,7 @@ export class Project extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ProjectListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ProjectListResponses, ProjectListErrors, ThrowOnError>({
       url: "/project",
       ...options,
       ...params,
@@ -2366,7 +2827,7 @@ export class Project extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ProjectCurrentResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ProjectCurrentResponses, ProjectCurrentErrors, ThrowOnError>({
       url: "/project/current",
       ...options,
       ...params,
@@ -2396,7 +2857,7 @@ export class Project extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<ProjectInitGitResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<ProjectInitGitResponses, ProjectInitGitErrors, ThrowOnError>({
       url: "/project/git/init",
       ...options,
       ...params,
@@ -2480,7 +2941,7 @@ export class Pty extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<PtyShellsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<PtyShellsResponses, PtyShellsErrors, ThrowOnError>({
       url: "/pty/shells",
       ...options,
       ...params,
@@ -2510,7 +2971,7 @@ export class Pty extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<PtyListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<PtyListResponses, PtyListErrors, ThrowOnError>({
       url: "/pty",
       ...options,
       ...params,
@@ -2639,6 +3100,7 @@ export class Pty extends HeyApiClient {
       directory?: string
       workspace?: string
       title?: string
+      sessionID?: string | null
       size?: {
         rows: number
         cols: number
@@ -2655,6 +3117,7 @@ export class Pty extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "body", key: "title" },
+            { in: "body", key: "sessionID" },
             { in: "body", key: "size" },
           ],
         },
@@ -2714,6 +3177,8 @@ export class Pty extends HeyApiClient {
       ptyID: string
       directory?: string
       workspace?: string
+      cursor?: string
+      ticket?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2725,6 +3190,8 @@ export class Pty extends HeyApiClient {
             { in: "path", key: "ptyID" },
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
+            { in: "query", key: "cursor" },
+            { in: "query", key: "ticket" },
           ],
         },
       ],
@@ -2761,7 +3228,7 @@ export class Question extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<QuestionListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<QuestionListResponses, QuestionListErrors, ThrowOnError>({
       url: "/question",
       ...options,
       ...params,
@@ -2864,7 +3331,7 @@ export class Permission extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<PermissionListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<PermissionListResponses, PermissionListErrors, ThrowOnError>({
       url: "/permission",
       ...options,
       ...params,
@@ -3164,7 +3631,7 @@ export class Provider extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ProviderListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ProviderListResponses, ProviderListErrors, ThrowOnError>({
       url: "/provider",
       ...options,
       ...params,
@@ -3194,7 +3661,7 @@ export class Provider extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<ProviderAuthResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<ProviderAuthResponses, ProviderAuthErrors, ThrowOnError>({
       url: "/provider/auth",
       ...options,
       ...params,
@@ -3243,7 +3710,7 @@ export class Session2 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<SessionListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<SessionListResponses, SessionListErrors, ThrowOnError>({
       url: "/session",
       ...options,
       ...params,
@@ -3267,6 +3734,9 @@ export class Session2 extends HeyApiClient {
         providerID: string
         variant?: string
       }
+      metadata?: {
+        [key: string]: unknown
+      }
       permission?: PermissionRuleset
       platform?: string
       workspaceID?: string
@@ -3284,6 +3754,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "title" },
             { in: "body", key: "agent" },
             { in: "body", key: "model" },
+            { in: "body", key: "metadata" },
             { in: "body", key: "permission" },
             { in: "body", key: "platform" },
             { in: "body", key: "workspaceID" },
@@ -3408,6 +3879,9 @@ export class Session2 extends HeyApiClient {
       directory?: string
       workspace?: string
       title?: string
+      metadata?: {
+        [key: string]: unknown
+      }
       permission?: PermissionRuleset
       time?: {
         archived?: number
@@ -3424,6 +3898,7 @@ export class Session2 extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "body", key: "title" },
+            { in: "body", key: "metadata" },
             { in: "body", key: "permission" },
             { in: "body", key: "time" },
           ],
@@ -3533,7 +4008,7 @@ export class Session2 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<SessionDiffResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<SessionDiffResponses, SessionDiffErrors, ThrowOnError>({
       url: "/session/{sessionID}/diff",
       ...options,
       ...params,
@@ -3599,6 +4074,7 @@ export class Session2 extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
+      snapshotInitialization?: "wait"
       editorContext?: {
         visibleFiles?: Array<string>
         openTabs?: Array<string>
@@ -3625,6 +4101,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "format" },
             { in: "body", key: "system" },
             { in: "body", key: "variant" },
+            { in: "body", key: "snapshotInitialization" },
             { in: "body", key: "editorContext" },
             { in: "body", key: "parts" },
           ],
@@ -3959,6 +4436,7 @@ export class Session2 extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
+      snapshotInitialization?: "wait"
       editorContext?: {
         visibleFiles?: Array<string>
         openTabs?: Array<string>
@@ -3985,6 +4463,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "format" },
             { in: "body", key: "system" },
             { in: "body", key: "variant" },
+            { in: "body", key: "snapshotInitialization" },
             { in: "body", key: "editorContext" },
             { in: "body", key: "parts" },
           ],
@@ -4019,6 +4498,7 @@ export class Session2 extends HeyApiClient {
       arguments?: string
       command?: string
       variant?: string
+      snapshotInitialization?: "wait"
       parts?: Array<{
         id?: string
         type: "file"
@@ -4044,6 +4524,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "arguments" },
             { in: "body", key: "command" },
             { in: "body", key: "variant" },
+            { in: "body", key: "snapshotInitialization" },
             { in: "body", key: "parts" },
           ],
         },
@@ -4209,7 +4690,7 @@ export class Session2 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<SessionViewedResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<SessionViewedResponses, SessionViewedErrors, ThrowOnError>({
       url: "/session/viewed",
       ...options,
       ...params,
@@ -4364,7 +4845,7 @@ export class Sync extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<SyncStartResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<SyncStartResponses, SyncStartErrors, ThrowOnError>({
       url: "/sync/start",
       ...options,
       ...params,
@@ -4479,6 +4960,13 @@ export class Session3 extends HeyApiClient {
     parameters?: {
       directory?: string
       workspace?: string
+      limit?: number
+      order?: "asc" | "desc"
+      path?: string
+      roots?: boolean | "true" | "false"
+      start?: number
+      search?: string
+      cursor?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4489,6 +4977,13 @@ export class Session3 extends HeyApiClient {
           args: [
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
+            { in: "query", key: "limit" },
+            { in: "query", key: "order" },
+            { in: "query", key: "path" },
+            { in: "query", key: "roots" },
+            { in: "query", key: "start" },
+            { in: "query", key: "search" },
+            { in: "query", key: "cursor" },
           ],
         },
       ],
@@ -4529,7 +5024,7 @@ export class Session3 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<V2SessionPromptResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<V2SessionPromptResponses, V2SessionPromptErrors, ThrowOnError>({
       url: "/api/session/{sessionID}/prompt",
       ...options,
       ...params,
@@ -4566,7 +5061,7 @@ export class Session3 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<V2SessionCompactResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<V2SessionCompactResponses, V2SessionCompactErrors, ThrowOnError>({
       url: "/api/session/{sessionID}/compact",
       ...options,
       ...params,
@@ -4598,7 +5093,7 @@ export class Session3 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<V2SessionWaitResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<V2SessionWaitResponses, V2SessionWaitErrors, ThrowOnError>({
       url: "/api/session/{sessionID}/wait",
       ...options,
       ...params,
@@ -4630,7 +5125,7 @@ export class Session3 extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<V2SessionContextResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<V2SessionContextResponses, V2SessionContextErrors, ThrowOnError>({
       url: "/api/session/{sessionID}/context",
       ...options,
       ...params,
@@ -4647,6 +5142,9 @@ export class Session3 extends HeyApiClient {
       sessionID: string
       directory?: string
       workspace?: string
+      limit?: number
+      order?: "asc" | "desc"
+      cursor?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4658,6 +5156,9 @@ export class Session3 extends HeyApiClient {
             { in: "path", key: "sessionID" },
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
+            { in: "query", key: "limit" },
+            { in: "query", key: "order" },
+            { in: "query", key: "cursor" },
           ],
         },
       ],
@@ -4670,10 +5171,101 @@ export class Session3 extends HeyApiClient {
   }
 }
 
+export class Model extends HeyApiClient {
+  /**
+   * List v2 models
+   *
+   * Retrieve available v2 models ordered by release date.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    return (options?.client ?? this.client).get<V2ModelListResponses, V2ModelListErrors, ThrowOnError>({
+      url: "/api/model",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Provider2 extends HeyApiClient {
+  /**
+   * List v2 providers
+   *
+   * Retrieve active v2 AI providers so clients can show provider availability and configuration.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    return (options?.client ?? this.client).get<V2ProviderListResponses, V2ProviderListErrors, ThrowOnError>({
+      url: "/api/provider",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get v2 provider
+   *
+   * Retrieve a single v2 AI provider so clients can inspect its availability and endpoint settings.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      providerID: string
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "providerID" },
+            { in: "query", key: "location" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<V2ProviderGetResponses, V2ProviderGetErrors, ThrowOnError>({
+      url: "/api/provider/{providerID}",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class V2 extends HeyApiClient {
   private _session?: Session3
   get session(): Session3 {
     return (this._session ??= new Session3({ client: this.client }))
+  }
+
+  private _model?: Model
+  get model(): Model {
+    return (this._model ??= new Model({ client: this.client }))
+  }
+
+  private _provider?: Provider2
+  get provider(): Provider2 {
+    return (this._provider ??= new Provider2({ client: this.client }))
   }
 }
 
@@ -4701,7 +5293,7 @@ export class Control extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<TuiControlNextResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<TuiControlNextResponses, TuiControlNextErrors, ThrowOnError>({
       url: "/tui/control/next",
       ...options,
       ...params,
@@ -4733,7 +5325,7 @@ export class Control extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiControlResponseResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiControlResponseResponses, TuiControlResponseErrors, ThrowOnError>({
       url: "/tui/control/response",
       ...options,
       ...params,
@@ -4742,6 +5334,148 @@ export class Control extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+}
+
+export class Config3 extends HeyApiClient {
+  /**
+   * Get TUI configuration
+   *
+   * Retrieve the effective TUI configuration for the current instance directory.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TuiConfigGetResponses, TuiConfigGetErrors, ThrowOnError>({
+      url: "/tui/config",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update TUI configuration
+   *
+   * Patch global or project TUI configuration and return the effective TUI configuration.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      scope?: "project" | "global"
+      $schema?: string
+      theme?: string
+      keybinds?: {
+        [key: string]: string
+      }
+      plugin?: Array<
+        | string
+        | [
+            string,
+            {
+              [key: string]: unknown
+            },
+          ]
+      >
+      plugin_enabled?: {
+        [key: string]: boolean
+      }
+      title_icon?: "none" | "unicode" | "emojis"
+      scroll_speed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      scroll_acceleration?: {
+        enabled: boolean
+      }
+      diff_style?: "auto" | "stacked"
+      mouse?: boolean
+      attention?: {
+        enabled?: boolean
+        notifications?: boolean
+        sound?: boolean
+        volume?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "scope" },
+            { in: "body", key: "$schema" },
+            { in: "body", key: "theme" },
+            { in: "body", key: "keybinds" },
+            { in: "body", key: "plugin" },
+            { in: "body", key: "plugin_enabled" },
+            { in: "body", key: "title_icon" },
+            { in: "body", key: "scroll_speed" },
+            { in: "body", key: "scroll_acceleration" },
+            { in: "body", key: "diff_style" },
+            { in: "body", key: "mouse" },
+            { in: "body", key: "attention" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<TuiConfigUpdateResponses, TuiConfigUpdateErrors, ThrowOnError>({
+      url: "/tui/config",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class Keybind extends HeyApiClient {
+  /**
+   * List TUI keybinds
+   *
+   * List valid TUI keybind commands, descriptions, groups, and default bindings from the CLI schema.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TuiKeybindListResponses, TuiKeybindListErrors, ThrowOnError>({
+      url: "/tui/keybinds",
+      ...options,
+      ...params,
     })
   }
 }
@@ -4807,7 +5541,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiOpenHelpResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiOpenHelpResponses, TuiOpenHelpErrors, ThrowOnError>({
       url: "/tui/open-help",
       ...options,
       ...params,
@@ -4837,7 +5571,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiOpenSessionsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiOpenSessionsResponses, TuiOpenSessionsErrors, ThrowOnError>({
       url: "/tui/open-sessions",
       ...options,
       ...params,
@@ -4867,7 +5601,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiOpenThemesResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiOpenThemesResponses, TuiOpenThemesErrors, ThrowOnError>({
       url: "/tui/open-themes",
       ...options,
       ...params,
@@ -4897,7 +5631,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiOpenModelsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiOpenModelsResponses, TuiOpenModelsErrors, ThrowOnError>({
       url: "/tui/open-models",
       ...options,
       ...params,
@@ -4927,7 +5661,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiSubmitPromptResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiSubmitPromptResponses, TuiSubmitPromptErrors, ThrowOnError>({
       url: "/tui/submit-prompt",
       ...options,
       ...params,
@@ -4957,7 +5691,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiClearPromptResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiClearPromptResponses, TuiClearPromptErrors, ThrowOnError>({
       url: "/tui/clear-prompt",
       ...options,
       ...params,
@@ -5032,7 +5766,7 @@ export class Tui extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<TuiShowToastResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<TuiShowToastResponses, TuiShowToastErrors, ThrowOnError>({
       url: "/tui/show-toast",
       ...options,
       ...params,
@@ -5122,6 +5856,144 @@ export class Tui extends HeyApiClient {
   get control(): Control {
     return (this._control ??= new Control({ client: this.client }))
   }
+
+  private _config?: Config3
+  get config(): Config3 {
+    return (this._config ??= new Config3({ client: this.client }))
+  }
+
+  private _keybind?: Keybind
+  get keybind(): Keybind {
+    return (this._keybind ??= new Keybind({ client: this.client }))
+  }
+}
+
+export class AgentBuilder extends HeyApiClient {
+  /**
+   * Preview agent markdown
+   *
+   * Validate an agent builder payload and return the canonical agent markdown without writing it.
+   */
+  public preview<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      scope?: "global" | "project"
+      description?: string
+      mode?: "primary" | "subagent" | "all"
+      model?: string
+      color?: string
+      steps?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      tools?: Array<string>
+      permission?: {
+        [key: string]: unknown
+      }
+      prompt?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "scope" },
+            { in: "body", key: "description" },
+            { in: "body", key: "mode" },
+            { in: "body", key: "model" },
+            { in: "body", key: "color" },
+            { in: "body", key: "steps" },
+            { in: "body", key: "tools" },
+            { in: "body", key: "permission" },
+            { in: "body", key: "prompt" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentBuilderPreviewResponses, AgentBuilderPreviewErrors, ThrowOnError>(
+      {
+        url: "/agent-builder/preview",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
+  /**
+   * Save agent markdown
+   *
+   * Save an agent builder payload as a canonical agent markdown file.
+   */
+  public save<ThrowOnError extends boolean = false>(
+    parameters: {
+      path_id: string
+      directory?: string
+      workspace?: string
+      body_id?: string
+      scope?: "global" | "project"
+      description?: string
+      mode?: "primary" | "subagent" | "all"
+      model?: string
+      color?: string
+      steps?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      tools?: Array<string>
+      permission?: {
+        [key: string]: unknown
+      }
+      prompt?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            {
+              in: "path",
+              key: "path_id",
+              map: "id",
+            },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            {
+              in: "body",
+              key: "body_id",
+              map: "id",
+            },
+            { in: "body", key: "scope" },
+            { in: "body", key: "description" },
+            { in: "body", key: "mode" },
+            { in: "body", key: "model" },
+            { in: "body", key: "color" },
+            { in: "body", key: "steps" },
+            { in: "body", key: "tools" },
+            { in: "body", key: "permission" },
+            { in: "body", key: "prompt" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<AgentBuilderSaveResponses, AgentBuilderSaveErrors, ThrowOnError>({
+      url: "/agent-builder/{id}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
 }
 
 export class BackgroundProcess extends HeyApiClient {
@@ -5148,7 +6020,11 @@ export class BackgroundProcess extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<BackgroundProcessListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      BackgroundProcessListResponses,
+      BackgroundProcessListErrors,
+      ThrowOnError
+    >({
       url: "/background-process",
       ...options,
       ...params,
@@ -5324,7 +6200,11 @@ export class BackgroundProcess extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<BackgroundProcessStopSessionResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<
+      BackgroundProcessStopSessionResponses,
+      BackgroundProcessStopSessionErrors,
+      ThrowOnError
+    >({
       url: "/background-process/session/{sessionID}/stop",
       ...options,
       ...params,
@@ -5446,8 +6326,68 @@ export class Indexing extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<IndexingStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<IndexingStatusResponses, IndexingStatusErrors, ThrowOnError>({
       url: "/indexing/status",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get indexing warnings
+   *
+   * Retrieve code indexing warnings for the active project.
+   */
+  public warnings<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<IndexingWarningsResponses, IndexingWarningsErrors, ThrowOnError>({
+      url: "/indexing/warnings",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List Kilo embedding models
+   *
+   * Retrieve the embedding models available through the active Kilo account.
+   */
+  public models<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<IndexingModelsResponses, IndexingModelsErrors, ThrowOnError>({
+      url: "/indexing/models",
       ...options,
       ...params,
     })
@@ -5470,6 +6410,7 @@ export class Audio extends HeyApiClient {
         format: string
       }
       language?: string
+      prompt?: string
       temperature?: number
     },
     options?: Options<never, ThrowOnError>,
@@ -5484,6 +6425,7 @@ export class Audio extends HeyApiClient {
             { in: "body", key: "model" },
             { in: "body", key: "input_audio" },
             { in: "body", key: "language" },
+            { in: "body", key: "prompt" },
             { in: "body", key: "temperature" },
           ],
         },
@@ -5601,7 +6543,11 @@ export class Claw extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<KiloClawChatCredentialsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<
+      KiloClawChatCredentialsResponses,
+      KiloClawChatCredentialsErrors,
+      ThrowOnError
+    >({
       url: "/kilo/claw/chat-credentials",
       ...options,
       ...params,
@@ -5723,6 +6669,36 @@ export class Kilo extends HeyApiClient {
   }
 
   /**
+   * Get Kilo authentication status
+   *
+   * Check whether a locally stored Kilo credential can authenticate Gateway requests
+   */
+  public authStatus<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<KiloAuthStatusResponses, KiloAuthStatusErrors, ThrowOnError>({
+      url: "/kilo/auth-status",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Get organization custom modes
    *
    * Fetch custom modes defined for the current organization
@@ -5745,7 +6721,7 @@ export class Kilo extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<KiloModesResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<KiloModesResponses, KiloModesErrors, ThrowOnError>({
       url: "/kilo/modes",
       ...options,
       ...params,
@@ -5802,7 +6778,7 @@ export class Kilo extends HeyApiClient {
   /**
    * Next Edit completion
    *
-   * Proxy a Mercury-style Next Edit request. The user supplies the already-templated sentinel-tagged prompt in `content`; the gateway forwards to the upstream edit endpoint (currently Inception's /v1/edit/completions) and returns the unwrapped reply.
+   * Proxy a Mercury-style Next Edit request. The client supplies structured editor context; the gateway assembles the sentinel-tagged prompt and forwards to the upstream edit endpoint.
    */
   public edit<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -6370,7 +7346,7 @@ export class Kilocode extends HeyApiClient {
   /**
    * Remove a skill
    *
-   * Remove a skill by deleting its directory from disk and clearing it from cache.
+   * Remove a skill by deleting its manifest from disk and clearing it from cache.
    */
   public removeSkill<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -6480,7 +7456,7 @@ export class Network extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<NetworkListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<NetworkListResponses, NetworkListErrors, ThrowOnError>({
       url: "/network",
       ...options,
       ...params,
@@ -6576,7 +7552,7 @@ export class Remote extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<RemoteEnableResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<RemoteEnableResponses, RemoteEnableErrors, ThrowOnError>({
       url: "/remote/enable",
       ...options,
       ...params,
@@ -6606,7 +7582,7 @@ export class Remote extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<RemoteDisableResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).post<RemoteDisableResponses, RemoteDisableErrors, ThrowOnError>({
       url: "/remote/disable",
       ...options,
       ...params,
@@ -6636,7 +7612,7 @@ export class Remote extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<RemoteStatusResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<RemoteStatusResponses, RemoteStatusErrors, ThrowOnError>({
       url: "/remote/status",
       ...options,
       ...params,
@@ -6668,7 +7644,7 @@ export class Suggestion extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<SuggestionListResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<SuggestionListResponses, SuggestionListErrors, ThrowOnError>({
       url: "/suggestion",
       ...options,
       ...params,
@@ -6970,6 +7946,11 @@ export class KiloClient extends HeyApiClient {
   private _tui?: Tui
   get tui(): Tui {
     return (this._tui ??= new Tui({ client: this.client }))
+  }
+
+  private _agentBuilder?: AgentBuilder
+  get agentBuilder(): AgentBuilder {
+    return (this._agentBuilder ??= new AgentBuilder({ client: this.client }))
   }
 
   private _backgroundProcess?: BackgroundProcess

@@ -82,9 +82,8 @@ let timer: ReturnType<typeof setTimeout> | null = null
 
 watch(opencodeSrcDir, { recursive: true }, (_event, filename) => {
   if (!filename) return
-  // Skip non-source files and build-generated files
+  // Skip test files
   if (filename.endsWith(".test.ts") || filename.endsWith(".test.tsx")) return
-  if (filename.includes("models-snapshot")) return
 
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => {

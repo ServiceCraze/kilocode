@@ -1,5 +1,17 @@
 import { describe, expect, test } from "bun:test"
-import { localReviewCommand, localReviewUncommittedCommand, parseReviewCommand } from "../../src/kilocode/review/command"
+import {
+  localReviewCommand,
+  localReviewUncommittedCommand,
+  parseReviewCommand,
+} from "../../src/kilocode/review/command"
+
+function expectReviewFixContract(text: string) {
+  expect(text).toContain("During the initial review phase")
+  expect(text).toContain("DO NOT modify any files")
+  expect(text).toContain("After the user chooses a fix option")
+  expect(text).toContain("you may switch from review to implementation behavior")
+  expect(text).toContain("Use editing tools to modify code only for findings in the completed review")
+}
 
 describe("review command parsing", () => {
   test("parses review slash commands", () => {
@@ -65,28 +77,32 @@ describe("local-review command", () => {
     expect(text).toContain("do not follow the link")
   })
 
-  test("template tells the model not to edit files", () => {
+  test("template scopes no-edit behavior to review phase", () => {
     const text = cmd.template as string
-    expect(text).toContain("DO NOT modify any files")
+    expectReviewFixContract(text)
   })
 
   test("template applies the review-pr high-signal review focus", () => {
     const text = cmd.template as string
-    expect(text).toContain("Review only these things")
+    expect(text).toContain("Permitted tracks")
     expect(text).toContain("deploy safety")
-    expect(text).toContain("duplicated code or duplicated logic")
-    expect(text).toContain("dead code caused by the reviewed changes")
-    expect(text).toContain("Do not review these things")
+    expect(text).toContain("duplication")
+    expect(text).toContain("dead code")
+    expect(text).toContain("Always out of scope")
     expect(text).toContain("code style")
     expect(text).toContain("generic refactors with no bug or product risk")
   })
 
   test("template applies the review-pr parallel review tracks", () => {
     const text = cmd.template as string
-    expect(text).toContain("spawn six sub-agents in parallel")
+    expect(text).toContain("spawn the appropriate sub-agents in parallel")
+    expect(text).toContain("spawn 1-2 sub-agents")
+    expect(text).toContain("spawn 3-4 sub-agents")
+    expect(text).toContain("spawn all six sub-agents")
     expect(text).toContain("security")
     expect(text).toContain("performance")
     expect(text).toContain("business logic")
+    expect(text).toContain("noticeably larger than comparable ones")
     expect(text).toContain("NO_FINDINGS")
   })
 })
@@ -133,28 +149,32 @@ describe("local-review-uncommitted command", () => {
     expect(text).toContain("do not follow the link")
   })
 
-  test("template tells the model not to edit files", () => {
+  test("template scopes no-edit behavior to review phase", () => {
     const text = cmd.template as string
-    expect(text).toContain("DO NOT modify any files")
+    expectReviewFixContract(text)
   })
 
   test("template applies the review-pr high-signal review focus", () => {
     const text = cmd.template as string
-    expect(text).toContain("Review only these things")
+    expect(text).toContain("Permitted tracks")
     expect(text).toContain("deploy safety")
-    expect(text).toContain("duplicated code or duplicated logic")
-    expect(text).toContain("dead code caused by the reviewed changes")
-    expect(text).toContain("Do not review these things")
+    expect(text).toContain("duplication")
+    expect(text).toContain("dead code")
+    expect(text).toContain("Always out of scope")
     expect(text).toContain("code style")
     expect(text).toContain("generic refactors with no bug or product risk")
   })
 
   test("template applies the review-pr parallel review tracks", () => {
     const text = cmd.template as string
-    expect(text).toContain("spawn six sub-agents in parallel")
+    expect(text).toContain("spawn the appropriate sub-agents in parallel")
+    expect(text).toContain("spawn 1-2 sub-agents")
+    expect(text).toContain("spawn 3-4 sub-agents")
+    expect(text).toContain("spawn all six sub-agents")
     expect(text).toContain("security")
     expect(text).toContain("performance")
     expect(text).toContain("business logic")
+    expect(text).toContain("noticeably larger than comparable ones")
     expect(text).toContain("NO_FINDINGS")
   })
 })
