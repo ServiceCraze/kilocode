@@ -41,6 +41,8 @@ data class MessageErrorDto(
     val message: String? = null,
     val statusCode: Int? = null,
     val responseBody: String? = null,
+    val dataKeys: List<String> = emptyList(),
+    val ref: String? = null,
 )
 
 @Serializable
@@ -297,8 +299,16 @@ data class PermissionRequestDto(
     val message: String? = null,
     val command: String? = null,
     val rules: List<String> = emptyList(),
+    val ruleDecisions: List<PermissionRuleDecisionDto> = emptyList(),
     val filePath: String? = null,
     val fileDiffs: List<PermissionFileDiffDto> = emptyList(),
+)
+
+@Serializable
+data class PermissionRuleDecisionDto(
+    val pattern: String,
+    val decision: String = "pending",
+    val defaultDecision: String = decision,
 )
 
 @Serializable

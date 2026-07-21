@@ -4,11 +4,13 @@ import path from "node:path"
 import { expect } from "bun:test"
 import { Effect, Exit, Layer } from "effect"
 import type { Tool as AITool, ToolExecutionOptions } from "ai"
-import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
+import { Database } from "@opencode-ai/core/database/database"
 import { Agent } from "@/agent/agent"
 import { Bus } from "@/bus"
+import { EventV2Bridge } from "@/event-v2-bridge"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { InstanceRef } from "@/effect/instance-ref"
 import { Format } from "@/format"
@@ -16,7 +18,7 @@ import { LSP } from "@/lsp/lsp"
 import * as ToolNetwork from "@/kilocode/sandbox/network"
 import { MCP } from "@/mcp"
 import { Permission } from "@/permission"
-import { ProjectID } from "@/project/schema"
+import { ProjectV2 } from "@opencode-ai/core/project"
 import type { InstanceContext } from "@/project/instance-context"
 import { Plugin } from "@/plugin"
 import { MessageV2 } from "@/session/message-v2"
@@ -33,7 +35,7 @@ import { tmpdirScoped } from "../../fixture/fixture"
 import { ProviderTest } from "../../fake/provider"
 import { testEffect } from "../../lib/effect"
 
-const projectID = ProjectID.make("sandbox-session-tools")
+const projectID = ProjectV2.ID.make("sandbox-session-tools")
 const sessionID = SessionID.make("ses_sandbox-session-tools")
 const model = ProviderTest.model()
 const agent: Agent.Info = {
@@ -89,7 +91,7 @@ function context(directory: string, main: string, sandboxes: string[]): Instance
 }
 
 const config = TestConfig.layer({
-  get: () => Effect.succeed({ experimental: { sandbox: true } }),
+  get: () => Effect.succeed({ sandbox: { enabled: true } }),
 })
 const agents = Layer.mock(Agent.Service)({
   get: () => Effect.succeed(agent),
@@ -131,7 +133,9 @@ const base = Layer.mergeAll(
   format,
   truncate,
   Bus.layer,
-  AppFileSystem.defaultLayer,
+  EventV2Bridge.defaultLayer,
+  Database.defaultLayer,
+  FSUtil.defaultLayer,
   CrossSpawnSpawner.defaultLayer,
   RuntimeFlags.layer(),
 )
@@ -150,6 +154,7 @@ const registry = Layer.effect(
   }),
 ).pipe(Layer.provideMerge(base))
 const it = testEffect(registry)
+const mac = process.platform === "darwin" && existsSync("/usr/bin/sandbox-exec") ? it.live : it.live.skip
 
 function resolve(ctx: InstanceContext) {
   return SessionTools.resolve({
@@ -168,6 +173,7 @@ function resolve(ctx: InstanceContext) {
       resolvePromptParts: () => Effect.die(new Error("resolvePromptParts is not used by this test")),
       prompt: () => Effect.die(new Error("prompt is not used by this test")),
     },
+    memoryCache: {},
   }).pipe(Effect.provideService(InstanceRef, ctx))
 }
 
@@ -221,7 +227,7 @@ function fixture() {
   })
 }
 
-it.live("confines model-originated file mutations to the active worktree", () =>
+mac("confines model-originated file mutations to the active worktree", () =>
   Effect.gen(function* () {
     const dirs = yield* fixture()
     const tools = yield* resolve(dirs.ctx)
@@ -280,7 +286,7 @@ it.live("confines model-originated file mutations to the active worktree", () =>
   }),
 )
 
-it.live("keeps model-originated file mutations writable in a local checkout", () =>
+mac("keeps model-originated file mutations writable in a local checkout", () =>
   Effect.gen(function* () {
     const dirs = yield* fixture()
     const ctx = context(dirs.local, dirs.main, [dirs.a, dirs.b])
@@ -296,7 +302,7 @@ it.live("keeps model-originated file mutations writable in a local checkout", ()
   }),
 )
 
-it.live("keeps concurrent session profiles call-local", () =>
+mac("keeps concurrent session profiles call-local", () =>
   Effect.gen(function* () {
     const dirs = yield* fixture()
     const left = yield* resolve(context(dirs.a, dirs.main, [dirs.a, dirs.b]))
@@ -327,8 +333,6 @@ it.live("keeps concurrent session profiles call-local", () =>
     expect(yield* exists(escapeB)).toBe(false)
   }),
 )
-
-const mac = process.platform === "darwin" && existsSync("/usr/bin/sandbox-exec") ? it.live : it.live.skip
 
 mac("confines a model-originated sandboxed process to the active worktree", () =>
   Effect.gen(function* () {
